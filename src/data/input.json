@@ -1,0 +1,19 @@
+{
+  "videoConfig": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "text": "Привет! Это видео создано через DSL",
+      "duration": 60,
+      "color": "#edff00"
+    },
+    {
+      "text": "LLM управляет этим текстом",
+      "duration": 90,
+      "color": "#00fbff"
+    }
+  ]
+}
