@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import 'dotenv/config';
+import saveAiResponseToFile from "./utils/ResponseToFile.mjs";
 
 const apiKey = process.env.GEMINI_API_KEY; 
 
@@ -47,6 +48,11 @@ async function generateScript() {
 
     console.log("Успех, получен жсон от модели");
     console.log(result.response.text());
+
+    const aiText = result.response.text();
+
+    await saveAiResponseToFile(aiText);
+
   } catch(error){
     console.error("Ошибка:", error)
   }
