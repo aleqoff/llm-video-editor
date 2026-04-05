@@ -3,8 +3,8 @@ import { spawn } from 'node:child_process';
 
 const nodeCommand = process.execPath;
 const remotionCliPath = path.resolve('node_modules/@remotion/cli/remotion-cli.js');
-const previewPort = process.env.REMOTION_PREVIEW_PORT ?? '3000';
-const webPort = process.env.VIDEO_ENGINE_WEB_PORT ?? '3010';
+const previewPort = process.env.REMOTION_PREVIEW_PORT ?? '3010';
+const webPort = process.env.VIDEO_ENGINE_WEB_PORT ?? '3000';
 
 const children = [];
 
