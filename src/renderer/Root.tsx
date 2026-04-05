@@ -4,10 +4,9 @@ import rawVideoSpec from '../../generated/latest-video.json';
 import { MainVideo } from './components/MainVideo';
 
 const videoSpec = normalizeVideoSpec(rawVideoSpec);
+const totalDuration = videoSpec.scenes.reduce((acc, scene) => acc + scene.duration, 0);
 
 export const RemotionRoot: React.FC = () => {
-  const totalDuration = videoSpec.scenes.reduce((acc, scene) => acc + scene.duration, 0);
-
   return (
     <Composition
       id="MarketingVideo"

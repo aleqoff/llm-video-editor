@@ -8,27 +8,43 @@
   "scenes": [
     {
       "type": "title",
-      "text": "1. Высокий доход и востребованность",
+      "text": "10 секретов богатого урожая",
       "duration": 90,
-      "backgroundColor": "#000000",
+      "backgroundColor": "#2E7D32",
       "textColor": "#FFFFFF",
       "align": "center"
     },
     {
-      "type": "title",
-      "text": "2. Удаленная работа из любой точки",
-      "duration": 90,
-      "backgroundColor": "#1E90FF",
-      "textColor": "#FFFFFF",
-      "align": "center"
+      "type": "bullet-list",
+      "title": "Основы ухода",
+      "items": [
+        "Мульчирование почвы",
+        "Капельный полив",
+        "Умный севооборот",
+        "Органическая подкормка",
+        "Посев сидератов"
+      ],
+      "duration": 180,
+      "backgroundColor": "#F1F8E9",
+      "textColor": "#1B5E20",
+      "accentColor": "#FFC107",
+      "align": "left"
     },
     {
-      "type": "title",
-      "text": "3. Создание будущего своими руками",
-      "duration": 90,
-      "backgroundColor": "#32CD32",
+      "type": "bullet-list",
+      "title": "Продвинутые методы",
+      "items": [
+        "Биологическая защита",
+        "Правильная обрезка",
+        "Аэрация корней",
+        "Компостирование",
+        "Вертикальные грядки"
+      ],
+      "duration": 180,
+      "backgroundColor": "#1B5E20",
       "textColor": "#FFFFFF",
-      "align": "center"
+      "accentColor": "#8BC34A",
+      "align": "left"
     }
   ]
 }

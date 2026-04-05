@@ -1,6 +1,6 @@
 import { AbsoluteFill, Sequence } from 'remotion';
 import type { VideoSpec } from '../../domain/video-schema';
-import { Scene } from './Scene';
+import { SceneRenderer } from './SceneRenderer';
 
 export const MainVideo: React.FC<{ videoSpec: VideoSpec }> = ({ videoSpec }) => {
   let currentStartFrame = 0;
@@ -17,7 +17,7 @@ export const MainVideo: React.FC<{ videoSpec: VideoSpec }> = ({ videoSpec }) => 
             from={startFrame}
             durationInFrames={scene.duration}
           >
-            <Scene scene={scene} />
+            <SceneRenderer scene={scene} />
           </Sequence>
         );
       })}

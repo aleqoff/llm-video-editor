@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "My Remotion video",
   "scripts": {
-    "dev": "remotion preview src/index.ts",
+    "dev": "node scripts/StartDev.mjs",
     "build": "remotion render src/index.ts out/video.mp4",
     "typecheck": "tsc",
     "generate:script": "node scripts/GenerateScript.mjs"

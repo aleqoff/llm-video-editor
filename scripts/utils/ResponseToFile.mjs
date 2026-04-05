@@ -10,21 +10,18 @@ const demoOutputPath = path.resolve(__dirname, '../../src/data/input.json');
 const { normalizeVideoSpec } = normalizeVideoModule;
 
 async function saveAiResponseToFile(rawText) {
-  try {
-    const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(cleanJson);
-    const normalizedSpec = normalizeVideoSpec(parsedData);
-    const output = JSON.stringify(normalizedSpec, null, 2);
+  const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+  const parsedData = JSON.parse(cleanJson);
+  const normalizedSpec = normalizeVideoSpec(parsedData);
+  const output = JSON.stringify(normalizedSpec, null, 2);
 
-    fs.mkdirSync(path.dirname(generatedOutputPath), { recursive: true });
-    fs.writeFileSync(generatedOutputPath, output, 'utf-8');
-    fs.writeFileSync(demoOutputPath, output, 'utf-8');
+  fs.mkdirSync(path.dirname(generatedOutputPath), { recursive: true });
+  fs.writeFileSync(generatedOutputPath, output, 'utf-8');
+  fs.writeFileSync(demoOutputPath, output, 'utf-8');
 
-    console.log(`Saved normalized video spec to: ${generatedOutputPath}`);
-  } catch (error) {
-    console.error('Failed to validate or save generated video spec:', error.message);
-    throw error;
-  }
+  console.log(`Saved normalized video spec to: ${generatedOutputPath}`);
+
+  return normalizedSpec;
 }
 
 export default saveAiResponseToFile;

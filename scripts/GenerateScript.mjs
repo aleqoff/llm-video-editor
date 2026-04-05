@@ -1,68 +1,47 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import 'dotenv/config';
-import saveAiResponseToFile from './utils/ResponseToFile.mjs';
+import readline from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
+import generateVideoSpecByTopic from './utils/GenerateVideoSpec.mjs';
 
-const apiKey = process.env.GEMINI_API_KEY;
+const getTopicFromArgs = () => {
+  return process.argv.slice(2).join(' ').trim();
+};
 
-if (!apiKey) {
-  console.error('Ошибка: API ключ не найден в файле .env');
-  process.exit(1);
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-
-async function generateScript() {
-  console.log('Отправляю запрос в Gemini');
-
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-flash-latest',
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
-  const prompt = `
-Ты режиссер SMM-видео. Создай сценарий для видео на тему: "3 причины начать учить программирование".
-
-Верни строго JSON без markdown и пояснений по следующему контракту:
-{
-  "schemaVersion": 1,
-  "videoConfig": {
-    "width": 1080,
-    "height": 1920,
-    "fps": 30
-  },
-  "scenes": [
-    {
-      "type": "title",
-      "text": "Короткий текст для кадра",
-      "duration": 90,
-      "backgroundColor": "#FF0055",
-      "textColor": "#FFFFFF",
-      "align": "center"
-    }
-  ]
-}
-
-Условия:
-- Ровно 3 сцены.
-- Используй только type = "title".
-- duration должен быть целым числом кадров.
-- backgroundColor и textColor должны быть валидными HEX-цветами.
-- Текст должен быть коротким, емким и подходить для вертикального SMM-видео.
-`;
+const promptForTopic = async () => {
+  const rl = readline.createInterface({ input, output });
 
   try {
-    const result = await model.generateContent(prompt);
+    const topic = (await rl.question('Введите тему для видео: ')).trim();
 
-    console.log('Успешно получил JSON от модели');
-    console.log(result.response.text());
+    if (!topic) {
+      throw new Error('Тема видео не может быть пустой.');
+    }
 
-    const aiText = result.response.text();
+    return topic;
+  } finally {
+    rl.close();
+  }
+};
 
-    await saveAiResponseToFile(aiText);
+const resolveTopic = async () => {
+  const topicFromArgs = getTopicFromArgs();
+
+  if (topicFromArgs) {
+    return topicFromArgs;
+  }
+
+  return promptForTopic();
+};
+
+async function generateScript() {
+  try {
+    const topic = await resolveTopic();
+
+    console.log(`Генерирую видео по теме: "${topic}"`);
+
+    await generateVideoSpecByTopic(topic);
   } catch (error) {
-    console.error('Ошибка:', error);
+    console.error('Ошибка:', error.message ?? error);
+    process.exitCode = 1;
   }
 }
 
