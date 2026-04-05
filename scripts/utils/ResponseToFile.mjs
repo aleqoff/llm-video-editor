@@ -1,28 +1,29 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import normalizeVideoModule from '../../src/domain/normalize-video.ts';
 
-// Определение путей (чтобы скрипт всегда находил нужную папку)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Указываем путь к файлу input.json относительно текущего скрипта
-const outputPath = path.resolve(__dirname, '../../src/data/input.json'); 
+const generatedOutputPath = path.resolve(__dirname, '../../generated/latest-video.json');
+const demoOutputPath = path.resolve(__dirname, '../../src/data/input.json');
+const { normalizeVideoSpec } = normalizeVideoModule;
 
 async function saveAiResponseToFile(rawText) {
   try {
-    // 1. Очистка от "мусора" (иногда ИИ оборачивает JSON в кавычки ```json ... ```)
     const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    // 2. Валидация: проверяем, что это действительно валидный JSON
     const parsedData = JSON.parse(cleanJson);
+    const normalizedSpec = normalizeVideoSpec(parsedData);
+    const output = JSON.stringify(normalizedSpec, null, 2);
 
-    // 3. Запись в файл с красивыми отступами (для читаемости)
-    fs.writeFileSync(outputPath, JSON.stringify(parsedData, null, 2), 'utf-8');
+    fs.mkdirSync(path.dirname(generatedOutputPath), { recursive: true });
+    fs.writeFileSync(generatedOutputPath, output, 'utf-8');
+    fs.writeFileSync(demoOutputPath, output, 'utf-8');
 
-    console.log(`✅ Данные успешно записаны в: ${outputPath}`);
+    console.log(`Saved normalized video spec to: ${generatedOutputPath}`);
   } catch (error) {
-    console.error("❌ Ошибка при обработке или записи JSON:", error.message);
-    // В дипломе это можно описать как "слой обработки исключений при десериализации"
+    console.error('Failed to validate or save generated video spec:', error.message);
+    throw error;
   }
 }
 
