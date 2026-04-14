@@ -1,12 +1,18 @@
 import {
   DEFAULT_BULLET_LIST_SCENE,
+  DEFAULT_CTA_SCENE,
+  DEFAULT_QUOTE_SCENE,
+  DEFAULT_STAT_SCENE,
   DEFAULT_TITLE_SCENE,
   DEFAULT_VIDEO_CONFIG,
   HEX_COLOR_PATTERN,
   rawVideoSpecSchema,
   videoSpecSchema,
   type BulletListScene,
+  type CtaScene,
+  type QuoteScene,
   type RawVideoSpec,
+  type StatScene,
   type TitleScene,
   type VideoConfig,
   type VideoScene,
@@ -48,6 +54,18 @@ const normalizeBulletListAlign = (
   return value ?? DEFAULT_BULLET_LIST_SCENE.align;
 };
 
+const normalizeQuoteAlign = (value: QuoteScene['align'] | undefined): QuoteScene['align'] => {
+  return value ?? DEFAULT_QUOTE_SCENE.align;
+};
+
+const normalizeCtaAlign = (value: CtaScene['align'] | undefined): CtaScene['align'] => {
+  return value ?? DEFAULT_CTA_SCENE.align;
+};
+
+const normalizeStatAlign = (value: StatScene['align'] | undefined): StatScene['align'] => {
+  return value ?? DEFAULT_STAT_SCENE.align;
+};
+
 const normalizeVideoConfig = (config: Partial<VideoConfig> | undefined): VideoConfig => {
   return {
     width: normalizeDimension(config?.width, DEFAULT_VIDEO_CONFIG.width),
@@ -64,6 +82,16 @@ const assertDuration = (duration: number, index: number): void => {
   }
 };
 
+const normalizeRequiredText = (value: string, errorMessage: string): string => {
+  const text = value.trim();
+
+  if (text.length === 0) {
+    throw new Error(errorMessage);
+  }
+
+  return text;
+};
+
 const normalizeTitleScene = (
   scene: {
     type?: 'title';
@@ -76,11 +104,7 @@ const normalizeTitleScene = (
   },
   index: number,
 ): TitleScene => {
-  const text = scene.text.trim();
-
-  if (text.length === 0) {
-    throw new Error(`Scene ${index + 1} must contain non-empty text.`);
-  }
+  const text = normalizeRequiredText(scene.text, `Scene ${index + 1} must contain non-empty text.`);
 
   assertDuration(scene.duration, index);
 
@@ -124,11 +148,10 @@ const normalizeBulletListScene = (
   },
   index: number,
 ): BulletListScene => {
-  const title = scene.title.trim();
-
-  if (title.length === 0) {
-    throw new Error(`Scene ${index + 1} must contain a non-empty bullet-list title.`);
-  }
+  const title = normalizeRequiredText(
+    scene.title,
+    `Scene ${index + 1} must contain a non-empty bullet-list title.`,
+  );
 
   assertDuration(scene.duration, index);
 
@@ -147,12 +170,139 @@ const normalizeBulletListScene = (
   };
 };
 
-const normalizeScene = (scene: RawVideoSpec['scenes'][number], index: number): VideoScene => {
-  if (scene.type === 'bullet-list') {
-    return normalizeBulletListScene(scene, index);
-  }
+const normalizeQuoteScene = (
+  scene: {
+    type: 'quote';
+    quote: string;
+    author?: string;
+    duration: number;
+    backgroundColor?: string;
+    color?: string;
+    textColor?: string;
+    accentColor?: string;
+    align?: QuoteScene['align'];
+  },
+  index: number,
+): QuoteScene => {
+  const quote = normalizeRequiredText(
+    scene.quote,
+    `Scene ${index + 1} must contain a non-empty quote.`,
+  );
+  const author = normalizeRequiredText(
+    scene.author ?? 'Источник',
+    `Scene ${index + 1} must contain a non-empty quote author.`,
+  );
 
-  return normalizeTitleScene(scene, index);
+  assertDuration(scene.duration, index);
+
+  return {
+    type: 'quote',
+    quote,
+    author,
+    duration: scene.duration,
+    backgroundColor: normalizeColor(
+      scene.backgroundColor ?? scene.color,
+      DEFAULT_QUOTE_SCENE.backgroundColor,
+    ),
+    textColor: normalizeColor(scene.textColor, DEFAULT_QUOTE_SCENE.textColor),
+    accentColor: normalizeColor(scene.accentColor, DEFAULT_QUOTE_SCENE.accentColor),
+    align: normalizeQuoteAlign(scene.align),
+  };
+};
+
+const normalizeCtaScene = (
+  scene: {
+    type: 'cta';
+    title: string;
+    action: string;
+    duration: number;
+    backgroundColor?: string;
+    color?: string;
+    textColor?: string;
+    accentColor?: string;
+    align?: CtaScene['align'];
+  },
+  index: number,
+): CtaScene => {
+  const title = normalizeRequiredText(
+    scene.title,
+    `Scene ${index + 1} must contain a non-empty cta title.`,
+  );
+  const action = normalizeRequiredText(
+    scene.action,
+    `Scene ${index + 1} must contain a non-empty cta action.`,
+  );
+
+  assertDuration(scene.duration, index);
+
+  return {
+    type: 'cta',
+    title,
+    action,
+    duration: scene.duration,
+    backgroundColor: normalizeColor(
+      scene.backgroundColor ?? scene.color,
+      DEFAULT_CTA_SCENE.backgroundColor,
+    ),
+    textColor: normalizeColor(scene.textColor, DEFAULT_CTA_SCENE.textColor),
+    accentColor: normalizeColor(scene.accentColor, DEFAULT_CTA_SCENE.accentColor),
+    align: normalizeCtaAlign(scene.align),
+  };
+};
+
+const normalizeStatScene = (
+  scene: {
+    type: 'stat';
+    value: string;
+    label: string;
+    duration: number;
+    backgroundColor?: string;
+    color?: string;
+    textColor?: string;
+    accentColor?: string;
+    align?: StatScene['align'];
+  },
+  index: number,
+): StatScene => {
+  const value = normalizeRequiredText(
+    scene.value,
+    `Scene ${index + 1} must contain a non-empty stat value.`,
+  );
+  const label = normalizeRequiredText(
+    scene.label,
+    `Scene ${index + 1} must contain a non-empty stat label.`,
+  );
+
+  assertDuration(scene.duration, index);
+
+  return {
+    type: 'stat',
+    value,
+    label,
+    duration: scene.duration,
+    backgroundColor: normalizeColor(
+      scene.backgroundColor ?? scene.color,
+      DEFAULT_STAT_SCENE.backgroundColor,
+    ),
+    textColor: normalizeColor(scene.textColor, DEFAULT_STAT_SCENE.textColor),
+    accentColor: normalizeColor(scene.accentColor, DEFAULT_STAT_SCENE.accentColor),
+    align: normalizeStatAlign(scene.align),
+  };
+};
+
+const normalizeScene = (scene: RawVideoSpec['scenes'][number], index: number): VideoScene => {
+  switch (scene.type) {
+    case 'bullet-list':
+      return normalizeBulletListScene(scene, index);
+    case 'quote':
+      return normalizeQuoteScene(scene, index);
+    case 'cta':
+      return normalizeCtaScene(scene, index);
+    case 'stat':
+      return normalizeStatScene(scene, index);
+    default:
+      return normalizeTitleScene(scene, index);
+  }
 };
 
 export const normalizeVideoSpec = (input: unknown): VideoSpec => {

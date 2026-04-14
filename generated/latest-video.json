@@ -8,43 +8,56 @@
   "scenes": [
     {
       "type": "title",
-      "text": "10 секретов богатого урожая",
-      "duration": 90,
-      "backgroundColor": "#2E7D32",
+      "text": "Пошаговый план входа в IT",
+      "duration": 60,
+      "backgroundColor": "#4F46E5",
       "textColor": "#FFFFFF",
       "align": "center"
     },
     {
-      "type": "bullet-list",
-      "title": "Основы ухода",
-      "items": [
-        "Мульчирование почвы",
-        "Капельный полив",
-        "Умный севооборот",
-        "Органическая подкормка",
-        "Посев сидератов"
-      ],
-      "duration": 180,
-      "backgroundColor": "#F1F8E9",
-      "textColor": "#1B5E20",
-      "accentColor": "#FFC107",
-      "align": "left"
+      "type": "stat",
+      "value": "6 мес",
+      "label": "среднее время на подготовку до Junior-уровня",
+      "duration": 90,
+      "backgroundColor": "#111827",
+      "textColor": "#FFFFFF",
+      "accentColor": "#10B981",
+      "align": "center"
     },
     {
       "type": "bullet-list",
-      "title": "Продвинутые методы",
+      "title": "Что нужно сделать:",
       "items": [
-        "Биологическая защита",
-        "Правильная обрезка",
-        "Аэрация корней",
-        "Компостирование",
-        "Вертикальные грядки"
+        "Выбрать востребованное направление",
+        "Освоить базу (SQL, Git, командная строка)",
+        "Собрать портфолио из 2-3 пет-проектов",
+        "Упаковать LinkedIn и начать отклики"
       ],
       "duration": 180,
-      "backgroundColor": "#1B5E20",
+      "backgroundColor": "#0F172A",
       "textColor": "#FFFFFF",
-      "accentColor": "#8BC34A",
+      "accentColor": "#F59E0B",
       "align": "left"
+    },
+    {
+      "type": "quote",
+      "quote": "В IT не приходят за легкими деньгами, а остаются за интересные задачи",
+      "author": "Senior-разработчик",
+      "duration": 100,
+      "backgroundColor": "#1E1B4B",
+      "textColor": "#FFFFFF",
+      "accentColor": "#F43F5E",
+      "align": "center"
+    },
+    {
+      "type": "cta",
+      "title": "Начни обучение сегодня",
+      "action": "Подпишись и забери список ресурсов в описании",
+      "duration": 90,
+      "backgroundColor": "#0F172A",
+      "textColor": "#FFFFFF",
+      "accentColor": "#8B5CF6",
+      "align": "center"
     }
   ]
 }

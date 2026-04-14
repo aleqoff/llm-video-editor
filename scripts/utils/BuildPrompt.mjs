@@ -27,17 +27,50 @@ export const buildPrompt = (topic) => `
       "textColor": "#FFFFFF",
       "accentColor": "#FFCC00",
       "align": "left"
+    },
+    {
+      "type": "quote",
+      "quote": "Короткая цитата или сильный тезис",
+      "author": "Источник",
+      "duration": 90,
+      "backgroundColor": "#111827",
+      "textColor": "#FFFFFF",
+      "accentColor": "#F97316",
+      "align": "center"
+    },
+    {
+      "type": "cta",
+      "title": "Финальный призыв",
+      "action": "Подпишись и сохрани это видео",
+      "duration": 90,
+      "backgroundColor": "#0F172A",
+      "textColor": "#FFFFFF",
+      "accentColor": "#FB7185",
+      "align": "center"
+    },
+    {
+      "type": "stat",
+      "value": "3x",
+      "label": "Краткое пояснение к цифре",
+      "duration": 90,
+      "backgroundColor": "#111827",
+      "textColor": "#FFFFFF",
+      "accentColor": "#22C55E",
+      "align": "center"
     }
   ]
 }
 
 Условия:
-- Ровно 3 сцены.
-- Используй только типы "title" и "bullet-list".
-- Хотя бы одна сцена должна быть типа "bullet-list".
+- Не меньше 3 сцен.
+- Используй только типы "title", "bullet-list", "quote", "cta" и "stat".
+- Хотя бы одна сцена должна быть типа "bullet-list", "quote", "cta" или "stat".
 - duration должен быть целым числом кадров.
-- backgroundColor, textColor и accentColor должны быть валидными HEX-цветами.
+- Все цвета должны быть валидными HEX-цветами.
 - Для bullet-list используй от 2 до 5 коротких пунктов.
+- quote используй для эмоционального тезиса или цитаты.
+- stat используй, когда уместна одна яркая цифра или метрика.
+- cta лучше ставить в финале видео.
 - Текст должен быть коротким, емким и подходить для вертикального SMM-видео.
 `;
 

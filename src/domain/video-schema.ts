@@ -21,6 +21,30 @@ export const DEFAULT_BULLET_LIST_SCENE = {
   align: 'left',
 } as const;
 
+export const DEFAULT_QUOTE_SCENE = {
+  type: 'quote',
+  backgroundColor: '#111827',
+  textColor: '#FFFFFF',
+  accentColor: '#F97316',
+  align: 'center',
+} as const;
+
+export const DEFAULT_CTA_SCENE = {
+  type: 'cta',
+  backgroundColor: '#0F172A',
+  textColor: '#FFFFFF',
+  accentColor: '#FB7185',
+  align: 'center',
+} as const;
+
+export const DEFAULT_STAT_SCENE = {
+  type: 'stat',
+  backgroundColor: '#111827',
+  textColor: '#FFFFFF',
+  accentColor: '#22C55E',
+  align: 'center',
+} as const;
+
 export const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 const rawVideoConfigSchema = z
@@ -53,10 +77,56 @@ const rawBulletListSceneSchema = z.object({
   align: z.enum(['left', 'center']).optional(),
 });
 
+const rawQuoteSceneSchema = z.object({
+  type: z.literal('quote'),
+  quote: z.string().trim().min(1),
+  author: z.string().trim().optional(),
+  duration: z.coerce.number().int().positive(),
+  backgroundColor: z.string().trim().optional(),
+  color: z.string().trim().optional(),
+  textColor: z.string().trim().optional(),
+  accentColor: z.string().trim().optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+});
+
+const rawCtaSceneSchema = z.object({
+  type: z.literal('cta'),
+  title: z.string().trim().min(1),
+  action: z.string().trim().min(1),
+  duration: z.coerce.number().int().positive(),
+  backgroundColor: z.string().trim().optional(),
+  color: z.string().trim().optional(),
+  textColor: z.string().trim().optional(),
+  accentColor: z.string().trim().optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+});
+
+const rawStatSceneSchema = z.object({
+  type: z.literal('stat'),
+  value: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  duration: z.coerce.number().int().positive(),
+  backgroundColor: z.string().trim().optional(),
+  color: z.string().trim().optional(),
+  textColor: z.string().trim().optional(),
+  accentColor: z.string().trim().optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+});
+
 export const rawVideoSpecSchema = z.object({
   schemaVersion: z.coerce.number().int().positive().optional(),
   videoConfig: rawVideoConfigSchema,
-  scenes: z.array(z.union([rawTitleSceneSchema, rawBulletListSceneSchema])).min(1),
+  scenes: z
+    .array(
+      z.union([
+        rawTitleSceneSchema,
+        rawBulletListSceneSchema,
+        rawQuoteSceneSchema,
+        rawCtaSceneSchema,
+        rawStatSceneSchema,
+      ]),
+    )
+    .min(1),
 });
 
 export const videoConfigSchema = z.object({
@@ -85,9 +155,45 @@ export const bulletListSceneSchema = z.object({
   align: z.enum(['left', 'center']),
 });
 
+export const quoteSceneSchema = z.object({
+  type: z.literal('quote'),
+  quote: z.string().trim().min(1).max(220),
+  author: z.string().trim().min(1).max(80),
+  duration: z.number().int().min(1).max(3600),
+  backgroundColor: z.string().regex(HEX_COLOR_PATTERN),
+  textColor: z.string().regex(HEX_COLOR_PATTERN),
+  accentColor: z.string().regex(HEX_COLOR_PATTERN),
+  align: z.enum(['left', 'center', 'right']),
+});
+
+export const ctaSceneSchema = z.object({
+  type: z.literal('cta'),
+  title: z.string().trim().min(1).max(120),
+  action: z.string().trim().min(1).max(140),
+  duration: z.number().int().min(1).max(3600),
+  backgroundColor: z.string().regex(HEX_COLOR_PATTERN),
+  textColor: z.string().regex(HEX_COLOR_PATTERN),
+  accentColor: z.string().regex(HEX_COLOR_PATTERN),
+  align: z.enum(['left', 'center', 'right']),
+});
+
+export const statSceneSchema = z.object({
+  type: z.literal('stat'),
+  value: z.string().trim().min(1).max(24),
+  label: z.string().trim().min(1).max(120),
+  duration: z.number().int().min(1).max(3600),
+  backgroundColor: z.string().regex(HEX_COLOR_PATTERN),
+  textColor: z.string().regex(HEX_COLOR_PATTERN),
+  accentColor: z.string().regex(HEX_COLOR_PATTERN),
+  align: z.enum(['left', 'center', 'right']),
+});
+
 export const videoSceneSchema = z.discriminatedUnion('type', [
   titleSceneSchema,
   bulletListSceneSchema,
+  quoteSceneSchema,
+  ctaSceneSchema,
+  statSceneSchema,
 ]);
 
 export const videoSpecSchema = z.object({
@@ -100,6 +206,9 @@ export type RawVideoSpec = z.infer<typeof rawVideoSpecSchema>;
 export type VideoConfig = z.infer<typeof videoConfigSchema>;
 export type TitleScene = z.infer<typeof titleSceneSchema>;
 export type BulletListScene = z.infer<typeof bulletListSceneSchema>;
+export type QuoteScene = z.infer<typeof quoteSceneSchema>;
+export type CtaScene = z.infer<typeof ctaSceneSchema>;
+export type StatScene = z.infer<typeof statSceneSchema>;
 export type VideoScene = z.infer<typeof videoSceneSchema>;
 export type VideoSpec = z.infer<typeof videoSpecSchema>;
 
@@ -107,11 +216,17 @@ export default {
   DEFAULT_VIDEO_CONFIG,
   DEFAULT_TITLE_SCENE,
   DEFAULT_BULLET_LIST_SCENE,
+  DEFAULT_QUOTE_SCENE,
+  DEFAULT_CTA_SCENE,
+  DEFAULT_STAT_SCENE,
   HEX_COLOR_PATTERN,
   rawVideoSpecSchema,
   videoConfigSchema,
   titleSceneSchema,
   bulletListSceneSchema,
+  quoteSceneSchema,
+  ctaSceneSchema,
+  statSceneSchema,
   videoSceneSchema,
   videoSpecSchema,
 };
