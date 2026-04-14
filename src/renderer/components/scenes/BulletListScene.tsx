@@ -1,29 +1,32 @@
-import { AbsoluteFill } from 'remotion';
-import type { BulletListScene as BulletListSceneData } from '../../../domain/video-schema';
+import type { BulletListScene as BulletListSceneData, VideoAsset } from '../../../domain/video-schema';
+import { SceneFrame } from './SceneFrame';
 
 const resolveTextAlign = (align: BulletListSceneData['align']): 'left' | 'center' => {
   return align === 'center' ? 'center' : 'left';
 };
 
-export const BulletListScene: React.FC<{ scene: BulletListSceneData }> = ({ scene }) => {
+export const BulletListScene: React.FC<{ scene: BulletListSceneData; asset?: VideoAsset }> = ({
+  scene,
+  asset,
+}) => {
   const textAlign = resolveTextAlign(scene.align);
   const alignItems = scene.align === 'center' ? 'center' : 'flex-start';
 
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: scene.backgroundColor,
+    <SceneFrame
+      scene={scene}
+      asset={asset}
+      contentStyle={{
         justifyContent: 'center',
         alignItems,
-        padding: '120px 72px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 860,
+          maxWidth: scene.media?.mode === 'side' ? 520 : 860,
           color: scene.textColor,
-          fontFamily: 'sans-serif',
+          fontFamily: 'Georgia, serif',
           textAlign,
         }}
       >
@@ -79,6 +82,6 @@ export const BulletListScene: React.FC<{ scene: BulletListSceneData }> = ({ scen
           ))}
         </div>
       </div>
-    </AbsoluteFill>
+    </SceneFrame>
   );
 };

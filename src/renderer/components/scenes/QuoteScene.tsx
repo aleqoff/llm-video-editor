@@ -1,23 +1,26 @@
-import { AbsoluteFill } from 'remotion';
-import type { QuoteScene as QuoteSceneData } from '../../../domain/video-schema';
+import type { QuoteScene as QuoteSceneData, VideoAsset } from '../../../domain/video-schema';
+import { SceneFrame } from './SceneFrame';
 
-export const QuoteScene: React.FC<{ scene: QuoteSceneData }> = ({ scene }) => {
+export const QuoteScene: React.FC<{ scene: QuoteSceneData; asset?: VideoAsset }> = ({
+  scene,
+  asset,
+}) => {
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: scene.backgroundColor,
+    <SceneFrame
+      scene={scene}
+      asset={asset}
+      contentStyle={{
         justifyContent: 'center',
         alignItems: scene.align === 'left' ? 'flex-start' : scene.align === 'right' ? 'flex-end' : 'center',
-        padding: '120px 72px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 860,
+          maxWidth: scene.media?.mode === 'side' ? 500 : 860,
           textAlign: scene.align,
           color: scene.textColor,
-          fontFamily: 'sans-serif',
+          fontFamily: 'Georgia, serif',
         }}
       >
         <div
@@ -52,6 +55,6 @@ export const QuoteScene: React.FC<{ scene: QuoteSceneData }> = ({ scene }) => {
           {scene.author}
         </div>
       </div>
-    </AbsoluteFill>
+    </SceneFrame>
   );
 };

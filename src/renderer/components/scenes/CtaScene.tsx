@@ -1,23 +1,26 @@
-import { AbsoluteFill } from 'remotion';
-import type { CtaScene as CtaSceneData } from '../../../domain/video-schema';
+import type { CtaScene as CtaSceneData, VideoAsset } from '../../../domain/video-schema';
+import { SceneFrame } from './SceneFrame';
 
-export const CtaScene: React.FC<{ scene: CtaSceneData }> = ({ scene }) => {
+export const CtaScene: React.FC<{ scene: CtaSceneData; asset?: VideoAsset }> = ({
+  scene,
+  asset,
+}) => {
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: scene.backgroundColor,
+    <SceneFrame
+      scene={scene}
+      asset={asset}
+      contentStyle={{
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '120px 64px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 900,
+          maxWidth: scene.media?.mode === 'side' ? 500 : 900,
           textAlign: scene.align,
           color: scene.textColor,
-          fontFamily: 'sans-serif',
+          fontFamily: 'Georgia, serif',
         }}
       >
         <div
@@ -45,6 +48,6 @@ export const CtaScene: React.FC<{ scene: CtaSceneData }> = ({ scene }) => {
           {scene.action}
         </div>
       </div>
-    </AbsoluteFill>
+    </SceneFrame>
   );
 };

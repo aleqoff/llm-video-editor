@@ -1,62 +1,82 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "videoConfig": {
     "width": 1080,
     "height": 1920,
     "fps": 30
   },
+  "assets": [
+    {
+      "id": "user-photo-1",
+      "type": "image",
+      "src": "uploads/1776167114824-logo-b976fe51fb8c.webp",
+      "alt": "logo.webp"
+    }
+  ],
   "scenes": [
     {
       "type": "title",
-      "text": "Пошаговый план входа в IT",
+      "text": "КАК ВЫЖИТЬ МАЛОМУ БИЗНЕСУ В 2026?",
       "duration": 60,
-      "backgroundColor": "#4F46E5",
+      "backgroundColor": "#1A1A1A",
       "textColor": "#FFFFFF",
-      "align": "center"
+      "align": "center",
+      "media": {
+        "assetId": "user-photo-1",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.6
+      }
     },
     {
       "type": "stat",
-      "value": "6 мес",
-      "label": "среднее время на подготовку до Junior-уровня",
+      "value": "85%",
+      "label": "клиентов выберут ИИ-сервис",
       "duration": 90,
-      "backgroundColor": "#111827",
+      "backgroundColor": "#2D2D2D",
       "textColor": "#FFFFFF",
-      "accentColor": "#10B981",
+      "accentColor": "#FF5722",
       "align": "center"
     },
     {
       "type": "bullet-list",
-      "title": "Что нужно сделать:",
+      "title": "3 ШАГА К УСПЕХУ:",
       "items": [
-        "Выбрать востребованное направление",
-        "Освоить базу (SQL, Git, командная строка)",
-        "Собрать портфолио из 2-3 пет-проектов",
-        "Упаковать LinkedIn и начать отклики"
+        "Гипер-персонализация",
+        "Автоматизация 70% рутины",
+        "Создание комьюнити"
       ],
-      "duration": 180,
-      "backgroundColor": "#0F172A",
+      "duration": 150,
+      "backgroundColor": "#101820",
       "textColor": "#FFFFFF",
-      "accentColor": "#F59E0B",
-      "align": "left"
+      "accentColor": "#00FFC2",
+      "align": "left",
+      "media": {
+        "assetId": "user-photo-1",
+        "mode": "side",
+        "position": "right",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.1
+      }
     },
     {
       "type": "quote",
-      "quote": "В IT не приходят за легкими деньгами, а остаются за интересные задачи",
-      "author": "Senior-разработчик",
-      "duration": 100,
-      "backgroundColor": "#1E1B4B",
+      "quote": "В 2026 выживет не самый крупный, а самый быстрый в адаптации.",
+      "author": "Прогноз экспертов",
+      "duration": 90,
+      "backgroundColor": "#000000",
       "textColor": "#FFFFFF",
-      "accentColor": "#F43F5E",
+      "accentColor": "#FFD700",
       "align": "center"
     },
     {
       "type": "cta",
-      "title": "Начни обучение сегодня",
-      "action": "Подпишись и забери список ресурсов в описании",
+      "title": "Готовь свой бизнес к будущему уже сейчас",
+      "action": "Готовь свой бизнес к будущему уже сейчас",
       "duration": 90,
-      "backgroundColor": "#0F172A",
+      "backgroundColor": "#1A1A1A",
       "textColor": "#FFFFFF",
-      "accentColor": "#8B5CF6",
+      "accentColor": "#FF5722",
       "align": "center"
     }
   ]

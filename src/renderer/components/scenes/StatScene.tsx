@@ -1,22 +1,25 @@
-import { AbsoluteFill } from 'remotion';
-import type { StatScene as StatSceneData } from '../../../domain/video-schema';
+import type { StatScene as StatSceneData, VideoAsset } from '../../../domain/video-schema';
+import { SceneFrame } from './SceneFrame';
 
-export const StatScene: React.FC<{ scene: StatSceneData }> = ({ scene }) => {
+export const StatScene: React.FC<{ scene: StatSceneData; asset?: VideoAsset }> = ({
+  scene,
+  asset,
+}) => {
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: scene.backgroundColor,
+    <SceneFrame
+      scene={scene}
+      asset={asset}
+      contentStyle={{
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '120px 64px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 900,
+          maxWidth: scene.media?.mode === 'side' ? 500 : 900,
           textAlign: scene.align,
-          fontFamily: 'sans-serif',
+          fontFamily: 'Georgia, serif',
           color: scene.textColor,
         }}
       >
@@ -41,6 +44,6 @@ export const StatScene: React.FC<{ scene: StatSceneData }> = ({ scene }) => {
           {scene.label}
         </div>
       </div>
-    </AbsoluteFill>
+    </SceneFrame>
   );
 };

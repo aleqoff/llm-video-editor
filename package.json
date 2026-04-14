@@ -6,7 +6,8 @@
     "dev": "node scripts/StartDev.mjs",
     "build": "remotion render src/index.ts out/video.mp4",
     "typecheck": "tsc",
-    "generate:script": "node scripts/GenerateScript.mjs"
+    "generate:script": "node scripts/GenerateScript.mjs",
+    "describe:image": "node scripts/DescribeImageByUrl.mjs"
   },
   "repository": {},
   "license": "UNLICENSED",

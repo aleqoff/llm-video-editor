@@ -9,9 +9,17 @@ const generatedOutputPath = path.resolve(__dirname, '../../generated/latest-vide
 const demoOutputPath = path.resolve(__dirname, '../../src/data/input.json');
 const { normalizeVideoSpec } = normalizeVideoModule;
 
-async function saveAiResponseToFile(rawText) {
-  const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-  const parsedData = JSON.parse(cleanJson);
+const parseRawPayload = (input) => {
+  if (typeof input === 'string') {
+    const cleanJson = input.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanJson);
+  }
+
+  return input;
+};
+
+async function saveAiResponseToFile(rawInput) {
+  const parsedData = parseRawPayload(rawInput);
   const normalizedSpec = normalizeVideoSpec(parsedData);
   const output = JSON.stringify(normalizedSpec, null, 2);
 

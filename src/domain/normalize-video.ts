@@ -2,6 +2,7 @@ import {
   DEFAULT_BULLET_LIST_SCENE,
   DEFAULT_CTA_SCENE,
   DEFAULT_QUOTE_SCENE,
+  DEFAULT_SCENE_MEDIA,
   DEFAULT_STAT_SCENE,
   DEFAULT_TITLE_SCENE,
   DEFAULT_VIDEO_CONFIG,
@@ -11,9 +12,12 @@ import {
   type BulletListScene,
   type CtaScene,
   type QuoteScene,
+  type RawScene,
   type RawVideoSpec,
+  type SceneMedia,
   type StatScene,
   type TitleScene,
+  type VideoAsset,
   type VideoConfig,
   type VideoScene,
   type VideoSpec,
@@ -42,6 +46,14 @@ const normalizeColor = (value: string | undefined, fallback: string): string => 
 
   const normalized = value.trim().toUpperCase();
   return HEX_COLOR_PATTERN.test(normalized) ? normalized : fallback;
+};
+
+const normalizeOpacity = (value: number | undefined, fallback: number): number => {
+  if (value === undefined || Number.isNaN(value)) {
+    return fallback;
+  }
+
+  return Math.min(0.95, Math.max(0, value));
 };
 
 const normalizeTitleAlign = (value: TitleScene['align'] | undefined): TitleScene['align'] => {
@@ -82,8 +94,8 @@ const assertDuration = (duration: number, index: number): void => {
   }
 };
 
-const normalizeRequiredText = (value: string, errorMessage: string): string => {
-  const text = value.trim();
+const normalizeRequiredText = (value: string | undefined, errorMessage: string): string => {
+  const text = value?.trim() ?? '';
 
   if (text.length === 0) {
     throw new Error(errorMessage);
@@ -92,32 +104,147 @@ const normalizeRequiredText = (value: string, errorMessage: string): string => {
   return text;
 };
 
+const normalizeOptionalText = (value: string | undefined, fallback: string): string => {
+  return value?.trim() ? value.trim() : fallback;
+};
+
+const getString = (value: unknown): string | undefined => {
+  return typeof value === 'string' ? value : undefined;
+};
+
+const getNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+};
+
+const getStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === 'string');
+};
+
+const extractStatValueAndLabel = (
+  rawValue: string | undefined,
+  rawText: string | undefined,
+  rawLabel: string | undefined,
+): { value: string; label: string } => {
+  const candidateValue = rawValue?.trim() ?? '';
+  const candidateText = rawText?.trim() ?? '';
+  const candidateLabel = rawLabel?.trim() ?? '';
+
+  if (candidateValue && candidateValue.length <= 24) {
+    return {
+      value: candidateValue,
+      label: candidateLabel || candidateText || candidateValue,
+    };
+  }
+
+  const source = candidateValue || candidateText || candidateLabel;
+  const match = source.match(
+    /(\d+(?:[.,]\d+)?\s*%|\d+(?:[.,]\d+)?\s*[xх]|x\s*\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)/i,
+  );
+
+  if (match) {
+    const extractedValue = match[1].replace(/\s+/g, '').trim();
+    const remainder = source.replace(match[0], '').replace(/\s{2,}/g, ' ').trim();
+
+    return {
+      value: extractedValue.slice(0, 24),
+      label: candidateLabel || remainder || candidateText || source,
+    };
+  }
+
+  return {
+    value: source.slice(0, 24),
+    label: candidateLabel || candidateText || source,
+  };
+};
+
+const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
+  if (!assets?.length) {
+    return [];
+  }
+
+  const seenIds = new Set<string>();
+
+  return assets.map((asset, index) => {
+    const id = normalizeRequiredText(asset.id, `Asset ${index + 1} must contain a non-empty id.`);
+    const src = normalizeRequiredText(
+      asset.src,
+      `Asset ${index + 1} must contain a non-empty src.`,
+    );
+
+    if (seenIds.has(id)) {
+      throw new Error(`Asset id "${id}" is duplicated.`);
+    }
+
+    seenIds.add(id);
+
+    return {
+      id,
+      type: 'image',
+      src,
+      alt: normalizeOptionalText(asset.alt, `Image asset ${id}`),
+    };
+  });
+};
+
+const normalizeSceneMedia = (
+  media: RawScene['media'],
+): SceneMedia | undefined => {
+  if (!media) {
+    return undefined;
+  }
+
+  return {
+    assetId: normalizeRequiredText(media.assetId, 'Scene media must reference a non-empty assetId.'),
+    mode: media.mode ?? DEFAULT_SCENE_MEDIA.mode,
+    position:
+      media.mode === 'side'
+        ? media.position ?? DEFAULT_SCENE_MEDIA.position
+        : media.position,
+    overlayColor: normalizeColor(media.overlayColor, DEFAULT_SCENE_MEDIA.overlayColor),
+    overlayOpacity: normalizeOpacity(media.overlayOpacity, DEFAULT_SCENE_MEDIA.overlayOpacity),
+  };
+};
+
 const normalizeTitleScene = (
-  scene: {
-    type?: 'title';
-    text: string;
-    duration: number;
-    backgroundColor?: string;
-    color?: string;
-    textColor?: string;
-    align?: TitleScene['align'];
-  },
+  scene: RawScene,
   index: number,
 ): TitleScene => {
-  const text = normalizeRequiredText(scene.text, `Scene ${index + 1} must contain non-empty text.`);
+  const text = normalizeRequiredText(
+    getString(scene.text),
+    `Scene ${index + 1} must contain non-empty text.`,
+  );
 
-  assertDuration(scene.duration, index);
+  const duration = getNumber(scene.duration) ?? 0;
+  assertDuration(duration, index);
 
   return {
     type: 'title',
     text,
-    duration: scene.duration,
+    duration,
     backgroundColor: normalizeColor(
-      scene.backgroundColor ?? scene.color,
+      getString(scene.backgroundColor) ?? getString(scene.color),
       DEFAULT_TITLE_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(scene.textColor, DEFAULT_TITLE_SCENE.textColor),
-    align: normalizeTitleAlign(scene.align),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_TITLE_SCENE.textColor),
+    align: normalizeTitleAlign(
+      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
+        ? scene.align
+        : undefined,
+    ),
+    media: normalizeSceneMedia(scene.media),
   };
 };
 
@@ -135,162 +262,173 @@ const normalizeBulletListItems = (items: string[], index: number): string[] => {
 };
 
 const normalizeBulletListScene = (
-  scene: {
-    type: 'bullet-list';
-    title: string;
-    items: string[];
-    duration: number;
-    backgroundColor?: string;
-    color?: string;
-    textColor?: string;
-    accentColor?: string;
-    align?: BulletListScene['align'];
-  },
+  scene: RawScene,
   index: number,
 ): BulletListScene => {
   const title = normalizeRequiredText(
-    scene.title,
+    getString(scene.title),
     `Scene ${index + 1} must contain a non-empty bullet-list title.`,
   );
 
-  assertDuration(scene.duration, index);
+  const duration = getNumber(scene.duration) ?? 0;
+  assertDuration(duration, index);
 
   return {
     type: 'bullet-list',
     title,
-    items: normalizeBulletListItems(scene.items, index),
-    duration: scene.duration,
+    items: normalizeBulletListItems(getStringArray(scene.items), index),
+    duration,
     backgroundColor: normalizeColor(
-      scene.backgroundColor ?? scene.color,
+      getString(scene.backgroundColor) ?? getString(scene.color),
       DEFAULT_BULLET_LIST_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(scene.textColor, DEFAULT_BULLET_LIST_SCENE.textColor),
-    accentColor: normalizeColor(scene.accentColor, DEFAULT_BULLET_LIST_SCENE.accentColor),
-    align: normalizeBulletListAlign(scene.align),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_BULLET_LIST_SCENE.textColor),
+    accentColor: normalizeColor(
+      getString(scene.accentColor),
+      DEFAULT_BULLET_LIST_SCENE.accentColor,
+    ),
+    align: normalizeBulletListAlign(scene.align === 'left' || scene.align === 'center' ? scene.align : undefined),
+    media: normalizeSceneMedia(scene.media),
   };
 };
 
 const normalizeQuoteScene = (
-  scene: {
-    type: 'quote';
-    quote: string;
-    author?: string;
-    duration: number;
-    backgroundColor?: string;
-    color?: string;
-    textColor?: string;
-    accentColor?: string;
-    align?: QuoteScene['align'];
-  },
+  scene: RawScene,
   index: number,
 ): QuoteScene => {
   const quote = normalizeRequiredText(
-    scene.quote,
+    getString(scene.quote),
     `Scene ${index + 1} must contain a non-empty quote.`,
   );
-  const author = normalizeRequiredText(
-    scene.author ?? 'Источник',
-    `Scene ${index + 1} must contain a non-empty quote author.`,
-  );
+  const author = normalizeOptionalText(getString(scene.author), 'Source');
 
-  assertDuration(scene.duration, index);
+  const duration = getNumber(scene.duration) ?? 0;
+  assertDuration(duration, index);
 
   return {
     type: 'quote',
     quote,
     author,
-    duration: scene.duration,
+    duration,
     backgroundColor: normalizeColor(
-      scene.backgroundColor ?? scene.color,
+      getString(scene.backgroundColor) ?? getString(scene.color),
       DEFAULT_QUOTE_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(scene.textColor, DEFAULT_QUOTE_SCENE.textColor),
-    accentColor: normalizeColor(scene.accentColor, DEFAULT_QUOTE_SCENE.accentColor),
-    align: normalizeQuoteAlign(scene.align),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_QUOTE_SCENE.textColor),
+    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_QUOTE_SCENE.accentColor),
+    align: normalizeQuoteAlign(
+      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
+        ? scene.align
+        : undefined,
+    ),
+    media: normalizeSceneMedia(scene.media),
+  };
+};
+
+const splitCtaText = (value: string | undefined): { title?: string; action?: string } => {
+  const text = value?.trim();
+
+  if (!text) {
+    return {};
+  }
+
+  const parts = text
+    .split(/(?:[.!?]\s+|\n+)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return {
+      title: parts[0],
+      action: parts.slice(1).join(' '),
+    };
+  }
+
+  return {
+    title: text,
+    action: text,
   };
 };
 
 const normalizeCtaScene = (
-  scene: {
-    type: 'cta';
-    title: string;
-    action: string;
-    duration: number;
-    backgroundColor?: string;
-    color?: string;
-    textColor?: string;
-    accentColor?: string;
-    align?: CtaScene['align'];
-  },
+  scene: RawScene,
   index: number,
 ): CtaScene => {
+  const ctaTextFallback = splitCtaText(getString(scene.text));
   const title = normalizeRequiredText(
-    scene.title,
+    getString(scene.title) ?? ctaTextFallback.title,
     `Scene ${index + 1} must contain a non-empty cta title.`,
   );
   const action = normalizeRequiredText(
-    scene.action,
+    getString(scene.action) ?? ctaTextFallback.action,
     `Scene ${index + 1} must contain a non-empty cta action.`,
   );
 
-  assertDuration(scene.duration, index);
+  const duration = getNumber(scene.duration) ?? 0;
+  assertDuration(duration, index);
 
   return {
     type: 'cta',
     title,
     action,
-    duration: scene.duration,
+    duration,
     backgroundColor: normalizeColor(
-      scene.backgroundColor ?? scene.color,
+      getString(scene.backgroundColor) ?? getString(scene.color),
       DEFAULT_CTA_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(scene.textColor, DEFAULT_CTA_SCENE.textColor),
-    accentColor: normalizeColor(scene.accentColor, DEFAULT_CTA_SCENE.accentColor),
-    align: normalizeCtaAlign(scene.align),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_CTA_SCENE.textColor),
+    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_CTA_SCENE.accentColor),
+    align: normalizeCtaAlign(
+      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
+        ? scene.align
+        : undefined,
+    ),
+    media: normalizeSceneMedia(scene.media),
   };
 };
 
 const normalizeStatScene = (
-  scene: {
-    type: 'stat';
-    value: string;
-    label: string;
-    duration: number;
-    backgroundColor?: string;
-    color?: string;
-    textColor?: string;
-    accentColor?: string;
-    align?: StatScene['align'];
-  },
+  scene: RawScene,
   index: number,
 ): StatScene => {
+  const extractedStat = extractStatValueAndLabel(
+    getString(scene.value),
+    getString(scene.text),
+    getString(scene.label),
+  );
   const value = normalizeRequiredText(
-    scene.value,
+    extractedStat.value,
     `Scene ${index + 1} must contain a non-empty stat value.`,
   );
   const label = normalizeRequiredText(
-    scene.label,
+    extractedStat.label,
     `Scene ${index + 1} must contain a non-empty stat label.`,
   );
 
-  assertDuration(scene.duration, index);
+  const duration = getNumber(scene.duration) ?? 0;
+  assertDuration(duration, index);
 
   return {
     type: 'stat',
     value,
     label,
-    duration: scene.duration,
+    duration,
     backgroundColor: normalizeColor(
-      scene.backgroundColor ?? scene.color,
+      getString(scene.backgroundColor) ?? getString(scene.color),
       DEFAULT_STAT_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(scene.textColor, DEFAULT_STAT_SCENE.textColor),
-    accentColor: normalizeColor(scene.accentColor, DEFAULT_STAT_SCENE.accentColor),
-    align: normalizeStatAlign(scene.align),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_STAT_SCENE.textColor),
+    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_STAT_SCENE.accentColor),
+    align: normalizeStatAlign(
+      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
+        ? scene.align
+        : undefined,
+    ),
+    media: normalizeSceneMedia(scene.media),
   };
 };
 
-const normalizeScene = (scene: RawVideoSpec['scenes'][number], index: number): VideoScene => {
+const normalizeScene = (scene: RawScene, index: number): VideoScene => {
   switch (scene.type) {
     case 'bullet-list':
       return normalizeBulletListScene(scene, index);
@@ -305,13 +443,30 @@ const normalizeScene = (scene: RawVideoSpec['scenes'][number], index: number): V
   }
 };
 
+const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): void => {
+  const assetIds = new Set(assets.map((asset) => asset.id));
+
+  scenes.forEach((scene, index) => {
+    if (scene.media && !assetIds.has(scene.media.assetId)) {
+      throw new Error(
+        `Scene ${index + 1} references unknown assetId "${scene.media.assetId}".`,
+      );
+    }
+  });
+};
+
 export const normalizeVideoSpec = (input: unknown): VideoSpec => {
   const parsed = rawVideoSpecSchema.parse(input);
+  const assets = normalizeAssets(parsed.assets);
+  const scenes = parsed.scenes.map((scene, index) => normalizeScene(scene, index));
+
+  assertSceneAssetsExist(assets, scenes);
 
   const normalized: VideoSpec = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     videoConfig: normalizeVideoConfig(parsed.videoConfig),
-    scenes: parsed.scenes.map((scene, index) => normalizeScene(scene, index)),
+    assets,
+    scenes,
   };
 
   return videoSpecSchema.parse(normalized);

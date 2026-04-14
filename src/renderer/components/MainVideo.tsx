@@ -17,7 +17,7 @@ export const MainVideo: React.FC<{ videoSpec: VideoSpec }> = ({ videoSpec }) => 
             from={startFrame}
             durationInFrames={scene.duration}
           >
-            <SceneRenderer scene={scene} />
+            <SceneRenderer scene={scene} assets={videoSpec.assets} />
           </Sequence>
         );
       })}
