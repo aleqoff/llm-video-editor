@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "videoConfig": {
     "width": 1080,
     "height": 1920,
@@ -9,75 +9,266 @@
     {
       "id": "user-photo-1",
       "type": "image",
-      "src": "uploads/1776167114824-logo-b976fe51fb8c.webp",
-      "alt": "logo.webp"
+      "src": "uploads/1776335425145-logogreen2-85749e71c555.png",
+      "alt": "logogreen2.png"
     }
   ],
   "scenes": [
     {
-      "type": "title",
-      "text": "КАК ВЫЖИТЬ МАЛОМУ БИЗНЕСУ В 2026?",
-      "duration": 60,
-      "backgroundColor": "#1A1A1A",
-      "textColor": "#FFFFFF",
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#00FF41",
+      "textColor": "#000000",
+      "accentColor": "#000000",
       "align": "center",
-      "media": {
-        "assetId": "user-photo-1",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.6
-      }
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "МГНОВЕННЫЙ ЗАХВАТ",
+          "size": "xl",
+          "align": "center",
+          "color": "#000000",
+          "accentColor": "#000000"
+        }
+      ]
     },
     {
-      "type": "stat",
-      "value": "85%",
-      "label": "клиентов выберут ИИ-сервис",
-      "duration": 90,
-      "backgroundColor": "#2D2D2D",
+      "type": "composition",
+      "duration": 40,
+      "backgroundColor": "#000000",
       "textColor": "#FFFFFF",
-      "accentColor": "#FF5722",
-      "align": "center"
-    },
-    {
-      "type": "bullet-list",
-      "title": "3 ШАГА К УСПЕХУ:",
-      "items": [
-        "Гипер-персонализация",
-        "Автоматизация 70% рутины",
-        "Создание комьюнити"
-      ],
-      "duration": 150,
-      "backgroundColor": "#101820",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00FFC2",
+      "accentColor": "#00FF41",
       "align": "left",
       "media": {
         "assetId": "user-photo-1",
         "mode": "side",
         "position": "right",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.1
-      }
+        "overlayOpacity": 0
+      },
+      "blocks": [
+        {
+          "kind": "stat",
+          "value": "15 сек",
+          "label": "на весь смысл",
+          "align": "left",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        }
+      ]
     },
     {
-      "type": "quote",
-      "quote": "В 2026 выживет не самый крупный, а самый быстрый в адаптации.",
-      "author": "Прогноз экспертов",
-      "duration": 90,
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#FF0055",
+      "textColor": "#FFFFFF",
+      "accentColor": "#000000",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "PAU PAU PAU!",
+          "size": "xl",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#000000"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 40,
+      "backgroundColor": "#121212",
+      "textColor": "#FFFFFF",
+      "accentColor": "#00FF41",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            "Динамика",
+            "Монтаж",
+            "Результат"
+          ],
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#6200EE",
+      "textColor": "#FFFFFF",
+      "accentColor": "#03DAC6",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "quote",
+          "text": "Внимание — новая нефть",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#03DAC6"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 40,
       "backgroundColor": "#000000",
       "textColor": "#FFFFFF",
-      "accentColor": "#FFD700",
-      "align": "center"
+      "accentColor": "#00FF41",
+      "align": "center",
+      "media": {
+        "assetId": "user-photo-1",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.6
+      },
+      "blocks": [
+        {
+          "kind": "badge",
+          "text": "HYPER GROWTH",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        },
+        {
+          "kind": "heading",
+          "text": "СКОРОСТЬ РЕШАЕТ",
+          "size": "lg",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        }
+      ]
     },
     {
-      "type": "cta",
-      "title": "Готовь свой бизнес к будущему уже сейчас",
-      "action": "Готовь свой бизнес к будущему уже сейчас",
-      "duration": 90,
-      "backgroundColor": "#1A1A1A",
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#00FF41",
+      "textColor": "#000000",
+      "accentColor": "#000000",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "БЫСТРЕЕ РЫНКА",
+          "size": "xl",
+          "align": "center",
+          "color": "#000000",
+          "accentColor": "#000000"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 40,
+      "backgroundColor": "#000000",
       "textColor": "#FFFFFF",
-      "accentColor": "#FF5722",
-      "align": "center"
+      "accentColor": "#FF0055",
+      "align": "left",
+      "blocks": [
+        {
+          "kind": "stat",
+          "value": "12 СЛАЙДОВ",
+          "label": "максимум пользы",
+          "align": "left",
+          "color": "#FFFFFF",
+          "accentColor": "#FF0055"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#000000",
+      "textColor": "#FFFFFF",
+      "accentColor": "#00FF41",
+      "align": "center",
+      "media": {
+        "assetId": "user-photo-1",
+        "mode": "frame",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0
+      },
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "ТВОЙ БРЕНД",
+          "size": "md",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 40,
+      "backgroundColor": "#FFD700",
+      "textColor": "#000000",
+      "accentColor": "#000000",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "badge",
+          "text": "NEW GEN",
+          "align": "center",
+          "color": "#000000",
+          "accentColor": "#000000"
+        },
+        {
+          "kind": "heading",
+          "text": "ADHD СТИЛЬ",
+          "size": "lg",
+          "align": "center",
+          "color": "#000000",
+          "accentColor": "#000000"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 35,
+      "backgroundColor": "#000000",
+      "textColor": "#FFFFFF",
+      "accentColor": "#00FF41",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "divider",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        },
+        {
+          "kind": "body",
+          "text": "Залетай в тренды сейчас",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00FF41"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 40,
+      "backgroundColor": "#00FF41",
+      "textColor": "#000000",
+      "accentColor": "#000000",
+      "align": "center",
+      "blocks": [
+        {
+          "kind": "cta",
+          "title": "ЖМИ НА КНОПКУ",
+          "action": "Начни путь к топам",
+          "align": "center",
+          "color": "#000000",
+          "accentColor": "#000000"
+        }
+      ]
     }
   ]
 }

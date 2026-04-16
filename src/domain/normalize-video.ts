@@ -1,22 +1,17 @@
 import {
-  DEFAULT_BULLET_LIST_SCENE,
-  DEFAULT_CTA_SCENE,
-  DEFAULT_QUOTE_SCENE,
+  DEFAULT_COMPOSITION_SCENE,
   DEFAULT_SCENE_MEDIA,
-  DEFAULT_STAT_SCENE,
-  DEFAULT_TITLE_SCENE,
   DEFAULT_VIDEO_CONFIG,
   HEX_COLOR_PATTERN,
   rawVideoSpecSchema,
   videoSpecSchema,
-  type BulletListScene,
-  type CtaScene,
-  type QuoteScene,
+  type CompositionScene,
+  type CtaBlock,
+  type RawBlock,
   type RawScene,
   type RawVideoSpec,
+  type SceneBlock,
   type SceneMedia,
-  type StatScene,
-  type TitleScene,
   type VideoAsset,
   type VideoConfig,
   type VideoScene,
@@ -56,28 +51,6 @@ const normalizeOpacity = (value: number | undefined, fallback: number): number =
   return Math.min(0.95, Math.max(0, value));
 };
 
-const normalizeTitleAlign = (value: TitleScene['align'] | undefined): TitleScene['align'] => {
-  return value ?? DEFAULT_TITLE_SCENE.align;
-};
-
-const normalizeBulletListAlign = (
-  value: BulletListScene['align'] | undefined,
-): BulletListScene['align'] => {
-  return value ?? DEFAULT_BULLET_LIST_SCENE.align;
-};
-
-const normalizeQuoteAlign = (value: QuoteScene['align'] | undefined): QuoteScene['align'] => {
-  return value ?? DEFAULT_QUOTE_SCENE.align;
-};
-
-const normalizeCtaAlign = (value: CtaScene['align'] | undefined): CtaScene['align'] => {
-  return value ?? DEFAULT_CTA_SCENE.align;
-};
-
-const normalizeStatAlign = (value: StatScene['align'] | undefined): StatScene['align'] => {
-  return value ?? DEFAULT_STAT_SCENE.align;
-};
-
 const normalizeVideoConfig = (config: Partial<VideoConfig> | undefined): VideoConfig => {
   return {
     width: normalizeDimension(config?.width, DEFAULT_VIDEO_CONFIG.width),
@@ -97,7 +70,7 @@ const assertDuration = (duration: number, index: number): void => {
 const normalizeRequiredText = (value: string | undefined, errorMessage: string): string => {
   const text = value?.trim() ?? '';
 
-  if (text.length === 0) {
+  if (!text) {
     throw new Error(errorMessage);
   }
 
@@ -131,6 +104,80 @@ const getStringArray = (value: unknown): string[] => {
   }
 
   return value.filter((item): item is string => typeof item === 'string');
+};
+
+const normalizeAlign = (
+  value: unknown,
+  fallback: CompositionScene['align'],
+): CompositionScene['align'] => {
+  return value === 'left' || value === 'center' || value === 'right' ? value : fallback;
+};
+
+const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
+  if (!assets?.length) {
+    return [];
+  }
+
+  const seenIds = new Set<string>();
+
+  return assets.map((asset, index) => {
+    const id = normalizeRequiredText(asset.id, `Asset ${index + 1} must contain a non-empty id.`);
+    const src = normalizeRequiredText(
+      asset.src,
+      `Asset ${index + 1} must contain a non-empty src.`,
+    );
+
+    if (seenIds.has(id)) {
+      throw new Error(`Asset id "${id}" is duplicated.`);
+    }
+
+    seenIds.add(id);
+
+    return {
+      id,
+      type: 'image',
+      src,
+      alt: normalizeOptionalText(asset.alt, `Image asset ${id}`),
+    };
+  });
+};
+
+const normalizeSceneMedia = (media: RawScene['media']): SceneMedia | undefined => {
+  if (!media) {
+    return undefined;
+  }
+
+  return {
+    assetId: normalizeRequiredText(media.assetId, 'Scene media must reference a non-empty assetId.'),
+    mode: media.mode ?? DEFAULT_SCENE_MEDIA.mode,
+    position: media.mode === 'side' ? media.position ?? DEFAULT_SCENE_MEDIA.position : media.position,
+    overlayColor: normalizeColor(media.overlayColor, DEFAULT_SCENE_MEDIA.overlayColor),
+    overlayOpacity: normalizeOpacity(media.overlayOpacity, DEFAULT_SCENE_MEDIA.overlayOpacity),
+  };
+};
+
+const normalizeBlockAlign = (block: RawBlock, sceneAlign: CompositionScene['align']) => {
+  return normalizeAlign(block.align, sceneAlign);
+};
+
+const buildTextBlockColor = (
+  block: RawBlock,
+  scene: RawScene,
+  fallback: string,
+): string | undefined => {
+  const blockColor = getString(block.color);
+  const sceneColor = getString(scene.textColor);
+  return normalizeColor(blockColor ?? sceneColor, fallback);
+};
+
+const buildAccentColor = (
+  block: RawBlock,
+  scene: RawScene,
+  fallback: string,
+): string | undefined => {
+  const blockAccent = getString(block.accentColor);
+  const sceneAccent = getString(scene.accentColor);
+  return normalizeColor(blockAccent ?? sceneAccent, fallback);
 };
 
 const extractStatValueAndLabel = (
@@ -170,161 +217,6 @@ const extractStatValueAndLabel = (
   };
 };
 
-const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
-  if (!assets?.length) {
-    return [];
-  }
-
-  const seenIds = new Set<string>();
-
-  return assets.map((asset, index) => {
-    const id = normalizeRequiredText(asset.id, `Asset ${index + 1} must contain a non-empty id.`);
-    const src = normalizeRequiredText(
-      asset.src,
-      `Asset ${index + 1} must contain a non-empty src.`,
-    );
-
-    if (seenIds.has(id)) {
-      throw new Error(`Asset id "${id}" is duplicated.`);
-    }
-
-    seenIds.add(id);
-
-    return {
-      id,
-      type: 'image',
-      src,
-      alt: normalizeOptionalText(asset.alt, `Image asset ${id}`),
-    };
-  });
-};
-
-const normalizeSceneMedia = (
-  media: RawScene['media'],
-): SceneMedia | undefined => {
-  if (!media) {
-    return undefined;
-  }
-
-  return {
-    assetId: normalizeRequiredText(media.assetId, 'Scene media must reference a non-empty assetId.'),
-    mode: media.mode ?? DEFAULT_SCENE_MEDIA.mode,
-    position:
-      media.mode === 'side'
-        ? media.position ?? DEFAULT_SCENE_MEDIA.position
-        : media.position,
-    overlayColor: normalizeColor(media.overlayColor, DEFAULT_SCENE_MEDIA.overlayColor),
-    overlayOpacity: normalizeOpacity(media.overlayOpacity, DEFAULT_SCENE_MEDIA.overlayOpacity),
-  };
-};
-
-const normalizeTitleScene = (
-  scene: RawScene,
-  index: number,
-): TitleScene => {
-  const text = normalizeRequiredText(
-    getString(scene.text),
-    `Scene ${index + 1} must contain non-empty text.`,
-  );
-
-  const duration = getNumber(scene.duration) ?? 0;
-  assertDuration(duration, index);
-
-  return {
-    type: 'title',
-    text,
-    duration,
-    backgroundColor: normalizeColor(
-      getString(scene.backgroundColor) ?? getString(scene.color),
-      DEFAULT_TITLE_SCENE.backgroundColor,
-    ),
-    textColor: normalizeColor(getString(scene.textColor), DEFAULT_TITLE_SCENE.textColor),
-    align: normalizeTitleAlign(
-      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
-        ? scene.align
-        : undefined,
-    ),
-    media: normalizeSceneMedia(scene.media),
-  };
-};
-
-const normalizeBulletListItems = (items: string[], index: number): string[] => {
-  const normalizedItems = items
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0)
-    .slice(0, 5);
-
-  if (normalizedItems.length < 2) {
-    throw new Error(`Scene ${index + 1} must contain at least 2 non-empty bullet items.`);
-  }
-
-  return normalizedItems;
-};
-
-const normalizeBulletListScene = (
-  scene: RawScene,
-  index: number,
-): BulletListScene => {
-  const title = normalizeRequiredText(
-    getString(scene.title),
-    `Scene ${index + 1} must contain a non-empty bullet-list title.`,
-  );
-
-  const duration = getNumber(scene.duration) ?? 0;
-  assertDuration(duration, index);
-
-  return {
-    type: 'bullet-list',
-    title,
-    items: normalizeBulletListItems(getStringArray(scene.items), index),
-    duration,
-    backgroundColor: normalizeColor(
-      getString(scene.backgroundColor) ?? getString(scene.color),
-      DEFAULT_BULLET_LIST_SCENE.backgroundColor,
-    ),
-    textColor: normalizeColor(getString(scene.textColor), DEFAULT_BULLET_LIST_SCENE.textColor),
-    accentColor: normalizeColor(
-      getString(scene.accentColor),
-      DEFAULT_BULLET_LIST_SCENE.accentColor,
-    ),
-    align: normalizeBulletListAlign(scene.align === 'left' || scene.align === 'center' ? scene.align : undefined),
-    media: normalizeSceneMedia(scene.media),
-  };
-};
-
-const normalizeQuoteScene = (
-  scene: RawScene,
-  index: number,
-): QuoteScene => {
-  const quote = normalizeRequiredText(
-    getString(scene.quote),
-    `Scene ${index + 1} must contain a non-empty quote.`,
-  );
-  const author = normalizeOptionalText(getString(scene.author), 'Source');
-
-  const duration = getNumber(scene.duration) ?? 0;
-  assertDuration(duration, index);
-
-  return {
-    type: 'quote',
-    quote,
-    author,
-    duration,
-    backgroundColor: normalizeColor(
-      getString(scene.backgroundColor) ?? getString(scene.color),
-      DEFAULT_QUOTE_SCENE.backgroundColor,
-    ),
-    textColor: normalizeColor(getString(scene.textColor), DEFAULT_QUOTE_SCENE.textColor),
-    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_QUOTE_SCENE.accentColor),
-    align: normalizeQuoteAlign(
-      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
-        ? scene.align
-        : undefined,
-    ),
-    media: normalizeSceneMedia(scene.media),
-  };
-};
-
 const splitCtaText = (value: string | undefined): { title?: string; action?: string } => {
   const text = value?.trim();
 
@@ -350,97 +242,200 @@ const splitCtaText = (value: string | undefined): { title?: string; action?: str
   };
 };
 
-const normalizeCtaScene = (
-  scene: RawScene,
-  index: number,
-): CtaScene => {
-  const ctaTextFallback = splitCtaText(getString(scene.text));
-  const title = normalizeRequiredText(
-    getString(scene.title) ?? ctaTextFallback.title,
-    `Scene ${index + 1} must contain a non-empty cta title.`,
-  );
-  const action = normalizeRequiredText(
-    getString(scene.action) ?? ctaTextFallback.action,
-    `Scene ${index + 1} must contain a non-empty cta action.`,
+const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index: number): SceneBlock[] => {
+  const sceneAlign = normalizeAlign(scene.align, DEFAULT_COMPOSITION_SCENE.align);
+  const sceneTextColor = normalizeColor(getString(scene.textColor), DEFAULT_COMPOSITION_SCENE.textColor);
+  const sceneAccentColor = normalizeColor(
+    getString(scene.accentColor),
+    DEFAULT_COMPOSITION_SCENE.accentColor,
   );
 
-  const duration = getNumber(scene.duration) ?? 0;
-  assertDuration(duration, index);
+  if (!blocks?.length) {
+    throw new Error(`Scene ${index + 1} must contain at least one block.`);
+  }
 
-  return {
-    type: 'cta',
-    title,
-    action,
-    duration,
-    backgroundColor: normalizeColor(
-      getString(scene.backgroundColor) ?? getString(scene.color),
-      DEFAULT_CTA_SCENE.backgroundColor,
-    ),
-    textColor: normalizeColor(getString(scene.textColor), DEFAULT_CTA_SCENE.textColor),
-    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_CTA_SCENE.accentColor),
-    align: normalizeCtaAlign(
-      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
-        ? scene.align
-        : undefined,
-    ),
-    media: normalizeSceneMedia(scene.media),
-  };
+  return blocks.map((block, blockIndex) => {
+    switch (block.kind) {
+      case 'heading':
+        return {
+          kind: 'heading',
+          text: normalizeRequiredText(
+            getString(block.text),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain heading text.`,
+          ),
+          size:
+            block.size === 'sm' || block.size === 'md' || block.size === 'lg' || block.size === 'xl'
+              ? block.size
+              : 'lg',
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      case 'body':
+        return {
+          kind: 'body',
+          text: normalizeRequiredText(
+            getString(block.text),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain body text.`,
+          ),
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      case 'list': {
+        const items = getStringArray(block.items)
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 5);
+
+        if (items.length < 2) {
+          throw new Error(
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain at least 2 list items.`,
+          );
+        }
+
+        return {
+          kind: 'list',
+          title: getString(block.title)?.trim() || undefined,
+          items,
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      }
+      case 'stat': {
+        const extractedStat = extractStatValueAndLabel(
+          getString(block.value),
+          getString(block.text),
+          getString(block.label),
+        );
+
+        return {
+          kind: 'stat',
+          value: normalizeRequiredText(
+            extractedStat.value,
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain stat value.`,
+          ),
+          label: normalizeRequiredText(
+            extractedStat.label,
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain stat label.`,
+          ),
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      }
+      case 'quote':
+        return {
+          kind: 'quote',
+          text: normalizeRequiredText(
+            getString(block.text) ?? getString(block.quote),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain quote text.`,
+          ),
+          author: getString(block.author)?.trim() || undefined,
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      case 'cta': {
+        const fallback = splitCtaText(getString(block.text));
+        const normalized: CtaBlock = {
+          kind: 'cta',
+          title: normalizeRequiredText(
+            getString(block.title) ?? fallback.title,
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain cta title.`,
+          ),
+          action: normalizeRequiredText(
+            getString(block.action) ?? fallback.action,
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain cta action.`,
+          ),
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+
+        return normalized;
+      }
+      case 'badge':
+        return {
+          kind: 'badge',
+          text: normalizeRequiredText(
+            getString(block.text),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain badge text.`,
+          ),
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      case 'divider':
+        return {
+          kind: 'divider',
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
+      default:
+        throw new Error(
+          `Scene ${index + 1}, block ${blockIndex + 1} has unsupported kind "${block.kind ?? 'unknown'}".`,
+        );
+    }
+  });
 };
 
-const normalizeStatScene = (
-  scene: RawScene,
-  index: number,
-): StatScene => {
-  const extractedStat = extractStatValueAndLabel(
-    getString(scene.value),
-    getString(scene.text),
-    getString(scene.label),
-  );
-  const value = normalizeRequiredText(
-    extractedStat.value,
-    `Scene ${index + 1} must contain a non-empty stat value.`,
-  );
-  const label = normalizeRequiredText(
-    extractedStat.label,
-    `Scene ${index + 1} must contain a non-empty stat label.`,
-  );
+const legacySceneToBlocks = (scene: RawScene): RawBlock[] => {
+  switch (scene.type) {
+    case 'title':
+      return [{ kind: 'heading', text: getString(scene.text), size: 'xl' }];
+    case 'bullet-list':
+      return [
+        { kind: 'heading', text: getString(scene.title), size: 'md' },
+        { kind: 'list', items: getStringArray(scene.items) },
+      ];
+    case 'quote':
+      return [{ kind: 'quote', text: getString(scene.quote), author: getString(scene.author) }];
+    case 'cta':
+      return [
+        {
+          kind: 'cta',
+          title: getString(scene.title) ?? getString(scene.text),
+          action: getString(scene.action) ?? getString(scene.text),
+        },
+      ];
+    case 'stat':
+      return [
+        {
+          kind: 'stat',
+          value: getString(scene.value),
+          label: getString(scene.label),
+          text: getString(scene.text),
+        },
+      ];
+    default:
+      return scene.blocks ?? [];
+  }
+};
 
+const normalizeCompositionScene = (scene: RawScene, index: number): CompositionScene => {
   const duration = getNumber(scene.duration) ?? 0;
   assertDuration(duration, index);
 
   return {
-    type: 'stat',
-    value,
-    label,
+    type: 'composition',
     duration,
     backgroundColor: normalizeColor(
       getString(scene.backgroundColor) ?? getString(scene.color),
-      DEFAULT_STAT_SCENE.backgroundColor,
+      DEFAULT_COMPOSITION_SCENE.backgroundColor,
     ),
-    textColor: normalizeColor(getString(scene.textColor), DEFAULT_STAT_SCENE.textColor),
-    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_STAT_SCENE.accentColor),
-    align: normalizeStatAlign(
-      scene.align === 'left' || scene.align === 'center' || scene.align === 'right'
-        ? scene.align
-        : undefined,
-    ),
+    textColor: normalizeColor(getString(scene.textColor), DEFAULT_COMPOSITION_SCENE.textColor),
+    accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_COMPOSITION_SCENE.accentColor),
+    align: normalizeAlign(scene.align, DEFAULT_COMPOSITION_SCENE.align),
     media: normalizeSceneMedia(scene.media),
+    blocks: normalizeBlocks(scene.blocks ?? legacySceneToBlocks(scene), scene, index),
   };
 };
 
 const normalizeScene = (scene: RawScene, index: number): VideoScene => {
-  switch (scene.type) {
-    case 'bullet-list':
-      return normalizeBulletListScene(scene, index);
-    case 'quote':
-      return normalizeQuoteScene(scene, index);
-    case 'cta':
-      return normalizeCtaScene(scene, index);
-    case 'stat':
-      return normalizeStatScene(scene, index);
-    default:
-      return normalizeTitleScene(scene, index);
-  }
+  return normalizeCompositionScene(scene, index);
 };
 
 const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): void => {
@@ -448,9 +443,7 @@ const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): voi
 
   scenes.forEach((scene, index) => {
     if (scene.media && !assetIds.has(scene.media.assetId)) {
-      throw new Error(
-        `Scene ${index + 1} references unknown assetId "${scene.media.assetId}".`,
-      );
+      throw new Error(`Scene ${index + 1} references unknown assetId "${scene.media.assetId}".`);
     }
   });
 };
@@ -463,7 +456,7 @@ export const normalizeVideoSpec = (input: unknown): VideoSpec => {
   assertSceneAssetsExist(assets, scenes);
 
   const normalized: VideoSpec = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     videoConfig: normalizeVideoConfig(parsed.videoConfig),
     assets,
     scenes,
