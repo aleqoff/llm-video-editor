@@ -4,7 +4,10 @@ const describeAssetsForPrompt = (assets) => {
   }
 
   return assets
-    .map((asset) => `- assetId: "${asset.id}", type: "image", alt: "${asset.alt}"`)
+    .map(
+      (asset) =>
+        `- assetId: "${asset.id}", type: "image", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}`,
+    )
     .join('\n');
 };
 
@@ -27,7 +30,9 @@ Return strictly valid JSON without markdown or explanations using this contract:
       "id": "user-photo-1",
       "type": "image",
       "src": "uploads/example.jpg",
-      "alt": "Short image description"
+      "alt": "Short image description",
+      "width": 1200,
+      "height": 1600
     }
   ],
   "scenes": [
@@ -48,6 +53,12 @@ Return strictly valid JSON without markdown or explanations using this contract:
         {
           "kind": "badge",
           "text": "Trend 2026"
+        },
+        {
+          "kind": "image",
+          "assetId": "user-photo-1",
+          "display": "card",
+          "caption": "Founder photo"
         },
         {
           "kind": "heading",
@@ -121,6 +132,7 @@ Allowed block kinds:
 - "cta"
 - "badge"
 - "divider"
+- "image"
 
 Available user assets:
 ${describeAssetsForPrompt(assets)}
@@ -140,8 +152,13 @@ Rules:
 - "cta" should be used near the end, not in every scene.
 - Keep text concise and useful for a business audience.
 - Vary the block combinations between scenes. Do not repeat the exact same structure every time.
-- Keep all assets from the input "assets" array unchanged in the output. Do not invent new asset ids or src values.
+- Keep all assets from the input "assets" array unchanged in the output. Copy each asset's id, src, alt, width, and height exactly as listed in "Available user assets" above. Do not invent or modify any asset field.
+- Preserve each asset width and height exactly as provided in the input assets array.
 - Use scene.media only when it materially improves the composition.
+- You may use up to 7 user images across the video.
+- If multiple images are available, distribute them thoughtfully across scenes or use more than one image block in a scene when useful.
+- Use "image" blocks when you want inline visual cards inside the composition, not only background media.
+- Respect image orientation and dimensions when choosing layout: portrait images fit well as side cards or frames, wide images fit well as background or strip blocks.
 - media.mode can only be "background", "frame", or "side".
 - Use "position" only when media.mode is "side".
 - If user images are provided, use at least one of them in at least one scene.

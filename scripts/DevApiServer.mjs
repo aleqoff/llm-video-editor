@@ -13,6 +13,7 @@ const uploadsDir = path.join(publicDir, 'uploads');
 const webPort = Number(process.env.VIDEO_ENGINE_WEB_PORT ?? 3010);
 const previewPort = Number(process.env.REMOTION_PREVIEW_PORT ?? 3000);
 const previewUrl = `http://localhost:${previewPort}`;
+const MAX_IMAGES = 7;
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -181,6 +182,8 @@ const html = `<!DOCTYPE html>
         padding: 10px 12px 14px;
         font-size: 14px;
         color: var(--muted);
+        display: grid;
+        gap: 4px;
       }
 
       .actions {
@@ -280,7 +283,7 @@ const html = `<!DOCTYPE html>
             <div class="dropzone">
               <input id="images" name="images" type="file" accept="image/*" multiple />
               <div class="hint">
-                Пока поддерживаются изображения jpeg, png, webp, gif.
+                Пока поддерживаются изображения jpeg, png, webp, gif. Не больше ${MAX_IMAGES} фото за генерацию.
               </div>
               <div id="preview-list" class="preview-list"></div>
             </div>
@@ -334,10 +337,33 @@ const html = `<!DOCTYPE html>
           reader.readAsDataURL(file);
         });
 
-      const renderPreviews = () => {
+      const readImageDimensions = (file) =>
+        new Promise((resolve, reject) => {
+          const objectUrl = URL.createObjectURL(file);
+          const image = new Image();
+
+          image.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve({
+              width: image.naturalWidth,
+              height: image.naturalHeight,
+            });
+          };
+
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Не удалось определить размер изображения.'));
+          };
+
+          image.src = objectUrl;
+        });
+
+      const renderPreviews = async () => {
         previewList.innerHTML = '';
 
-        Array.from(imagesField.files || []).forEach((file) => {
+        const files = Array.from(imagesField.files || []);
+
+        await Promise.all(files.map(async (file) => {
           const card = document.createElement('div');
           card.className = 'preview-card';
 
@@ -347,15 +373,30 @@ const html = `<!DOCTYPE html>
 
           const meta = document.createElement('div');
           meta.className = 'preview-meta';
-          meta.textContent = file.name;
+
+          const title = document.createElement('div');
+          title.textContent = file.name;
+
+          const details = document.createElement('div');
+          try {
+            const dimensions = await readImageDimensions(file);
+            details.textContent = dimensions.width + ' x ' + dimensions.height + ' px';
+          } catch {
+            details.textContent = 'Размер не определён';
+          }
+
+          meta.appendChild(title);
+          meta.appendChild(details);
 
           card.appendChild(image);
           card.appendChild(meta);
           previewList.appendChild(card);
-        });
+        }));
       };
 
-      imagesField.addEventListener('change', renderPreviews);
+      imagesField.addEventListener('change', () => {
+        void renderPreviews();
+      });
 
       previewButton.addEventListener('click', () => {
         window.open(previewUrl, '_blank', 'noopener,noreferrer');
@@ -365,9 +406,15 @@ const html = `<!DOCTYPE html>
         event.preventDefault();
 
         const topic = topicField.value.trim();
+        const files = Array.from(imagesField.files || []);
 
         if (!topic) {
           setStatus('Введите тему видео перед генерацией.', 'error');
+          return;
+        }
+
+        if (files.length > ${MAX_IMAGES}) {
+          setStatus('Можно загрузить не больше ${MAX_IMAGES} фото за один раз.', 'error');
           return;
         }
 
@@ -377,11 +424,20 @@ const html = `<!DOCTYPE html>
 
         try {
           const imagePayloads = await Promise.all(
-            Array.from(imagesField.files || []).map(async (file) => ({
-              name: file.name,
-              mimeType: file.type || 'image/jpeg',
-              base64Data: await fileToBase64(file),
-            })),
+            files.map(async (file) => {
+              const [base64Data, dimensions] = await Promise.all([
+                fileToBase64(file),
+                readImageDimensions(file),
+              ]);
+
+              return {
+                name: file.name,
+                mimeType: file.type || 'image/jpeg',
+                base64Data,
+                width: dimensions.width,
+                height: dimensions.height,
+              };
+            }),
           );
 
           const response = await fetch('/api/generate', {
@@ -474,6 +530,10 @@ const ensureUploadsDir = () => {
 const saveImages = (images) => {
   ensureUploadsDir();
 
+  if (images.length > MAX_IMAGES) {
+    throw new Error(`Only up to ${MAX_IMAGES} images are supported per generation.`);
+  }
+
   return images.map((image, index) => {
     if (!image || typeof image !== 'object') {
       throw new Error(`Image ${index + 1} payload is invalid.`);
@@ -486,9 +546,15 @@ const saveImages = (images) => {
     }
 
     const base64Data = typeof image.base64Data === 'string' ? image.base64Data.trim() : '';
+    const width = typeof image.width === 'number' ? image.width : Number(image.width);
+    const height = typeof image.height === 'number' ? image.height : Number(image.height);
 
     if (!base64Data) {
       throw new Error(`Image ${index + 1} does not contain base64 data.`);
+    }
+
+    if (!Number.isInteger(width) || width < 1 || !Number.isInteger(height) || height < 1) {
+      throw new Error(`Image ${index + 1} must include valid width and height.`);
     }
 
     const originalName = typeof image.name === 'string' ? image.name.trim() : `image-${index + 1}`;
@@ -505,6 +571,8 @@ const saveImages = (images) => {
       type: 'image',
       src: `uploads/${fileName}`,
       alt: originalName,
+      width,
+      height,
       mimeType,
       base64Data,
     };

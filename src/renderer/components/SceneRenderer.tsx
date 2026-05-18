@@ -9,7 +9,7 @@ export const SceneRenderer: React.FC<{ scene: VideoScene; assets: VideoAsset[] }
 
   switch (scene.type) {
     case 'composition':
-      return <CompositionScene scene={scene} asset={asset} />;
+      return <CompositionScene scene={scene} asset={asset} assets={assets} />;
     default:
       return null;
   }

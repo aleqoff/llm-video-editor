@@ -40,6 +40,8 @@ const rawAssetSchema = z.object({
   type: z.literal('image').optional(),
   src: z.string().trim().min(1),
   alt: z.string().trim().optional(),
+  width: z.coerce.number().int().positive().optional(),
+  height: z.coerce.number().int().positive().optional(),
 });
 
 const rawSceneMediaSchema = z.object({
@@ -83,6 +85,8 @@ export const assetSchema = z.object({
   type: z.literal('image'),
   src: z.string().trim().min(1).max(2048),
   alt: z.string().trim().min(1).max(240),
+  width: z.number().int().min(1).max(12000),
+  height: z.number().int().min(1).max(12000),
 });
 
 export const sceneMediaSchema = z.object({
@@ -151,6 +155,15 @@ export const dividerBlockSchema = z.object({
   ...blockBaseShape,
 });
 
+export const imageBlockSchema = z.object({
+  kind: z.literal('image'),
+  assetId: z.string().trim().min(1).max(80),
+  caption: z.string().trim().min(1).max(120).optional(),
+  display: z.enum(['card', 'stack', 'strip']).optional(),
+  focalPoint: z.enum(['center', 'top', 'bottom']).optional(),
+  ...blockBaseShape,
+});
+
 export const sceneBlockSchema = z.discriminatedUnion('kind', [
   headingBlockSchema,
   bodyBlockSchema,
@@ -160,6 +173,7 @@ export const sceneBlockSchema = z.discriminatedUnion('kind', [
   ctaBlockSchema,
   badgeBlockSchema,
   dividerBlockSchema,
+  imageBlockSchema,
 ]);
 
 export const compositionSceneSchema = z.object({
@@ -170,7 +184,7 @@ export const compositionSceneSchema = z.object({
   accentColor: z.string().regex(HEX_COLOR_PATTERN),
   align: sceneAlignSchema,
   media: sceneMediaSchema.optional(),
-  blocks: z.array(sceneBlockSchema).min(1).max(8),
+  blocks: z.array(sceneBlockSchema).min(1).max(16),
 });
 
 export const videoSceneSchema = z.discriminatedUnion('type', [compositionSceneSchema]);
@@ -196,6 +210,7 @@ export type QuoteBlock = z.infer<typeof quoteBlockSchema>;
 export type CtaBlock = z.infer<typeof ctaBlockSchema>;
 export type BadgeBlock = z.infer<typeof badgeBlockSchema>;
 export type DividerBlock = z.infer<typeof dividerBlockSchema>;
+export type ImageBlock = z.infer<typeof imageBlockSchema>;
 export type SceneBlock = z.infer<typeof sceneBlockSchema>;
 export type CompositionScene = z.infer<typeof compositionSceneSchema>;
 export type VideoScene = z.infer<typeof videoSceneSchema>;
@@ -220,6 +235,7 @@ export default {
   ctaBlockSchema,
   badgeBlockSchema,
   dividerBlockSchema,
+  imageBlockSchema,
   sceneBlockSchema,
   compositionSceneSchema,
   videoSceneSchema,

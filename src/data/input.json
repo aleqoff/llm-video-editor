@@ -9,264 +9,213 @@
     {
       "id": "user-photo-1",
       "type": "image",
-      "src": "uploads/1776335425145-logogreen2-85749e71c555.png",
-      "alt": "logogreen2.png"
+      "src": "uploads/1776379851021-logogreen2-eaa424e7d382.png",
+      "alt": "logogreen2.png",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "id": "user-photo-2",
+      "type": "image",
+      "src": "uploads/1776379851022-logored-509996b941ed.png",
+      "alt": "logored.png",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "id": "user-photo-3",
+      "type": "image",
+      "src": "uploads/1776379851023-512-1-59b0a537316d.png",
+      "alt": "лого 512 1.png",
+      "width": 512,
+      "height": 512
     }
   ],
   "scenes": [
     {
       "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#00FF41",
-      "textColor": "#000000",
-      "accentColor": "#000000",
-      "align": "center",
-      "blocks": [
-        {
-          "kind": "heading",
-          "text": "МГНОВЕННЫЙ ЗАХВАТ",
-          "size": "xl",
-          "align": "center",
-          "color": "#000000",
-          "accentColor": "#000000"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#000000",
+      "duration": 30,
+      "backgroundColor": "#111111",
       "textColor": "#FFFFFF",
-      "accentColor": "#00FF41",
-      "align": "left",
+      "accentColor": "#FF8C00",
+      "align": "center",
       "media": {
-        "assetId": "user-photo-1",
-        "mode": "side",
-        "position": "right",
+        "assetId": "user-photo-3",
+        "mode": "background",
         "overlayColor": "#000000",
-        "overlayOpacity": 0
+        "overlayOpacity": 0.4
       },
       "blocks": [
         {
-          "kind": "stat",
-          "value": "15 сек",
-          "label": "на весь смысл",
-          "align": "left",
-          "color": "#FFFFFF",
-          "accentColor": "#00FF41"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#FF0055",
-      "textColor": "#FFFFFF",
-      "accentColor": "#000000",
-      "align": "center",
-      "blocks": [
-        {
           "kind": "heading",
-          "text": "PAU PAU PAU!",
+          "text": "ТРЕНДЫ IT 2026",
           "size": "xl",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#000000"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#121212",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00FF41",
-      "align": "center",
-      "blocks": [
+          "accentColor": "#FF8C00"
+        },
         {
-          "kind": "list",
-          "items": [
-            "Динамика",
-            "Монтаж",
-            "Результат"
-          ],
+          "kind": "badge",
+          "text": "Прогноз экспертов",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00FF41"
+          "accentColor": "#FF8C00"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#6200EE",
+      "duration": 30,
+      "backgroundColor": "#220000",
       "textColor": "#FFFFFF",
-      "accentColor": "#03DAC6",
+      "accentColor": "#FF0000",
       "align": "center",
+      "media": {
+        "assetId": "user-photo-2",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.3
+      },
       "blocks": [
         {
-          "kind": "quote",
-          "text": "Внимание — новая нефть",
+          "kind": "heading",
+          "text": "Гиперавтоматизация",
+          "size": "lg",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#03DAC6"
+          "accentColor": "#FF0000"
+        },
+        {
+          "kind": "body",
+          "text": "Полный отказ от рутины",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FF0000"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#000000",
+      "duration": 30,
+      "backgroundColor": "#002200",
       "textColor": "#FFFFFF",
-      "accentColor": "#00FF41",
+      "accentColor": "#008000",
       "align": "center",
       "media": {
         "assetId": "user-photo-1",
         "mode": "background",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.6
-      },
-      "blocks": [
-        {
-          "kind": "badge",
-          "text": "HYPER GROWTH",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00FF41"
-        },
-        {
-          "kind": "heading",
-          "text": "СКОРОСТЬ РЕШАЕТ",
-          "size": "lg",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00FF41"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#00FF41",
-      "textColor": "#000000",
-      "accentColor": "#000000",
-      "align": "center",
-      "blocks": [
-        {
-          "kind": "heading",
-          "text": "БЫСТРЕЕ РЫНКА",
-          "size": "xl",
-          "align": "center",
-          "color": "#000000",
-          "accentColor": "#000000"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FF0055",
-      "align": "left",
-      "blocks": [
-        {
-          "kind": "stat",
-          "value": "12 СЛАЙДОВ",
-          "label": "максимум пользы",
-          "align": "left",
-          "color": "#FFFFFF",
-          "accentColor": "#FF0055"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00FF41",
-      "align": "center",
-      "media": {
-        "assetId": "user-photo-1",
-        "mode": "frame",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0
+        "overlayOpacity": 0.3
       },
       "blocks": [
         {
           "kind": "heading",
-          "text": "ТВОЙ БРЕНД",
-          "size": "md",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00FF41"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#FFD700",
-      "textColor": "#000000",
-      "accentColor": "#000000",
-      "align": "center",
-      "blocks": [
-        {
-          "kind": "badge",
-          "text": "NEW GEN",
-          "align": "center",
-          "color": "#000000",
-          "accentColor": "#000000"
-        },
-        {
-          "kind": "heading",
-          "text": "ADHD СТИЛЬ",
+          "text": "Зеленый софт",
           "size": "lg",
           "align": "center",
-          "color": "#000000",
-          "accentColor": "#000000"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 35,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00FF41",
-      "align": "center",
-      "blocks": [
-        {
-          "kind": "divider",
-          "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00FF41"
+          "accentColor": "#008000"
         },
         {
           "kind": "body",
-          "text": "Залетай в тренды сейчас",
+          "text": "Углеродно-нейтральное IT",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00FF41"
+          "accentColor": "#008000"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 40,
-      "backgroundColor": "#00FF41",
-      "textColor": "#000000",
-      "accentColor": "#000000",
+      "duration": 30,
+      "backgroundColor": "#220000",
+      "textColor": "#FFFFFF",
+      "accentColor": "#FF0000",
       "align": "center",
+      "media": {
+        "assetId": "user-photo-2",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.3
+      },
       "blocks": [
         {
-          "kind": "cta",
-          "title": "ЖМИ НА КНОПКУ",
-          "action": "Начни путь к топам",
+          "kind": "heading",
+          "text": "Квантовые вычисления",
+          "size": "lg",
           "align": "center",
-          "color": "#000000",
-          "accentColor": "#000000"
+          "color": "#FFFFFF",
+          "accentColor": "#FF0000"
+        },
+        {
+          "kind": "body",
+          "text": "Переход в облачный стек",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FF0000"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 30,
+      "backgroundColor": "#002200",
+      "textColor": "#FFFFFF",
+      "accentColor": "#008000",
+      "align": "center",
+      "media": {
+        "assetId": "user-photo-1",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.3
+      },
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Киберустойчивость",
+          "size": "lg",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#008000"
+        },
+        {
+          "kind": "body",
+          "text": "Самозалечивающийся код",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#008000"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 30,
+      "backgroundColor": "#220000",
+      "textColor": "#FFFFFF",
+      "accentColor": "#FF0000",
+      "align": "center",
+      "media": {
+        "assetId": "user-photo-2",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.3
+      },
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Mesh-архитектура",
+          "size": "lg",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FF0000"
+        },
+        {
+          "kind": "cta",
+          "title": "Узнать подробности",
+          "action": "Подписаться",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FF0000"
         }
       ]
     }

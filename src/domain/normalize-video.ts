@@ -138,6 +138,8 @@ const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
       type: 'image',
       src,
       alt: normalizeOptionalText(asset.alt, `Image asset ${id}`),
+      width: Math.max(1, Math.min(12000, asset.width ?? 1080)),
+      height: Math.max(1, Math.min(12000, asset.height ?? 1080)),
     };
   });
 };
@@ -374,6 +376,28 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
         };
+      case 'image':
+        return {
+          kind: 'image',
+          assetId: normalizeRequiredText(
+            getString(block.assetId),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain image assetId.`,
+          ),
+          caption: getString(block.caption)?.trim() || undefined,
+          display:
+            block.display === 'card' || block.display === 'stack' || block.display === 'strip'
+              ? block.display
+              : 'card',
+          focalPoint:
+            block.focalPoint === 'center' ||
+            block.focalPoint === 'top' ||
+            block.focalPoint === 'bottom'
+              ? block.focalPoint
+              : 'center',
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+        };
       default:
         throw new Error(
           `Scene ${index + 1}, block ${blockIndex + 1} has unsupported kind "${block.kind ?? 'unknown'}".`,
@@ -410,6 +434,8 @@ const legacySceneToBlocks = (scene: RawScene): RawBlock[] => {
           text: getString(scene.text),
         },
       ];
+    case 'composition':
+      return scene.blocks ?? [];
     default:
       return scene.blocks ?? [];
   }
@@ -445,6 +471,14 @@ const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): voi
     if (scene.media && !assetIds.has(scene.media.assetId)) {
       throw new Error(`Scene ${index + 1} references unknown assetId "${scene.media.assetId}".`);
     }
+
+    scene.blocks.forEach((block, blockIndex) => {
+      if (block.kind === 'image' && !assetIds.has(block.assetId)) {
+        throw new Error(
+          `Scene ${index + 1}, block ${blockIndex + 1} references unknown assetId "${block.assetId}".`,
+        );
+      }
+    });
   });
 };
 

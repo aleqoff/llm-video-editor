@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { Img, staticFile } from 'remotion';
 import type {
   CompositionScene as CompositionSceneData,
   SceneBlock,
@@ -23,9 +24,29 @@ const getHeadingSize = (size: 'sm' | 'md' | 'lg' | 'xl' | undefined): number => 
   }
 };
 
-const BlockRenderer: React.FC<{ block: SceneBlock; scene: CompositionSceneData }> = ({
+const resolveAssetSrc = (src: string): string => {
+  if (/^(https?:)?\/\//.test(src)) {
+    return src;
+  }
+
+  return staticFile(src.replace(/^\/+/, ''));
+};
+
+const getAssetAspectRatio = (asset: VideoAsset): number => {
+  return asset.width / Math.max(asset.height, 1);
+};
+
+const getObjectFit = (ratio: number): 'cover' | 'contain' =>
+  ratio >= 0.75 && ratio <= 1.35 ? 'contain' : 'cover';
+
+const BlockRenderer: React.FC<{
+  block: SceneBlock;
+  scene: CompositionSceneData;
+  assetsById: Map<string, VideoAsset>;
+}> = ({
   block,
   scene,
+  assetsById,
 }) => {
   const align = block.align ?? scene.align;
   const textAlign = resolveTextAlign(align);
@@ -245,6 +266,72 @@ const BlockRenderer: React.FC<{ block: SceneBlock; scene: CompositionSceneData }
           }}
         />
       );
+    case 'image': {
+      const asset = assetsById.get(block.assetId);
+
+      if (!asset) {
+        return null;
+      }
+
+      const aspectRatio = getAssetAspectRatio(asset);
+      const isPortrait = aspectRatio < 0.65;
+      const isNearSquare = aspectRatio >= 0.75 && aspectRatio <= 1.35;
+      const fit = block.display === 'strip' ? 'cover' : getObjectFit(aspectRatio);
+      const height =
+        block.display === 'strip' ? 210 : block.display === 'stack' ? 280 : isPortrait ? 440 : isNearSquare ? 360 : 300;
+
+      return (
+        <div
+          style={{
+            width: block.display === 'strip' ? '100%' : isPortrait ? '58%' : isNearSquare ? '62%' : '100%',
+            alignSelf: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height,
+              overflow: 'hidden',
+              borderRadius: 28,
+              backgroundColor: '#050B14',
+              boxShadow: '0 20px 55px rgba(0, 0, 0, 0.22)',
+            }}
+          >
+            <Img
+              src={resolveAssetSrc(asset.src)}
+              alt={asset.alt}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: fit,
+                objectPosition:
+                  block.focalPoint === 'top'
+                    ? 'center top'
+                    : block.focalPoint === 'bottom'
+                      ? 'center bottom'
+                      : 'center center',
+                backgroundColor: '#050B14',
+              }}
+            />
+          </div>
+          {block.caption ? (
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 18,
+                lineHeight: 1.25,
+                color,
+                textAlign,
+                opacity: 0.8,
+              }}
+            >
+              {block.caption}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     default:
       return null;
   }
@@ -253,10 +340,12 @@ const BlockRenderer: React.FC<{ block: SceneBlock; scene: CompositionSceneData }
 export const CompositionScene: React.FC<{
   scene: CompositionSceneData;
   asset?: VideoAsset;
-}> = ({ scene, asset }) => {
+  assets: VideoAsset[];
+}> = ({ scene, asset, assets }) => {
   const justifyContent = scene.align === 'center' ? 'center' : 'flex-start';
   const alignItems =
     scene.align === 'center' ? 'center' : scene.align === 'right' ? 'flex-end' : 'flex-start';
+  const assetsById = new Map(assets.map((item) => [item.id, item]));
 
   return (
     <SceneFrame
@@ -278,7 +367,12 @@ export const CompositionScene: React.FC<{
         }}
       >
         {scene.blocks.map((block, index) => (
-          <BlockRenderer key={`${block.kind}-${index}`} block={block} scene={scene} />
+          <BlockRenderer
+            key={`${block.kind}-${index}`}
+            block={block}
+            scene={scene}
+            assetsById={assetsById}
+          />
         ))}
       </div>
     </SceneFrame>
