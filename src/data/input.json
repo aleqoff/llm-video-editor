@@ -7,215 +7,238 @@
   },
   "assets": [
     {
-      "id": "user-photo-1",
+      "id": "user-asset-1",
       "type": "image",
-      "src": "uploads/1776379851021-logogreen2-eaa424e7d382.png",
-      "alt": "logogreen2.png",
-      "width": 512,
-      "height": 512
+      "src": "uploads/1779139476071-2ss-1-e016210140d1.png",
+      "alt": "Безымянный2ss (1).png",
+      "width": 1273,
+      "height": 1389
     },
     {
-      "id": "user-photo-2",
+      "id": "user-asset-2",
       "type": "image",
-      "src": "uploads/1776379851022-logored-509996b941ed.png",
-      "alt": "logored.png",
-      "width": 512,
-      "height": 512
+      "src": "uploads/1779139476077-64197c6f-6dc4-44b8-8789-2189dc3ab7d2-6b4f0cad6f40.jpg",
+      "alt": "64197c6f-6dc4-44b8-8789-2189dc3ab7d2.jfif",
+      "width": 1871,
+      "height": 1003
     },
     {
-      "id": "user-photo-3",
+      "id": "user-asset-3",
       "type": "image",
-      "src": "uploads/1776379851023-512-1-59b0a537316d.png",
-      "alt": "лого 512 1.png",
-      "width": 512,
-      "height": 512
+      "src": "uploads/1779139476078-amiri-da5b20c843ef.png",
+      "alt": "amiri.png",
+      "width": 532,
+      "height": 850
     }
   ],
   "scenes": [
     {
       "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#111111",
+      "duration": 60,
+      "backgroundColor": "#0A0A0A",
       "textColor": "#FFFFFF",
-      "accentColor": "#FF8C00",
+      "accentColor": "#00E5FF",
       "align": "center",
-      "media": {
-        "assetId": "user-photo-3",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.4
-      },
-      "blocks": [
+      "layers": [
+        {
+          "kind": "badge",
+          "text": "TOP 5",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00E5FF",
+          "enterAt": 0,
+          "enterTransition": "scale"
+        },
         {
           "kind": "heading",
-          "text": "ТРЕНДЫ IT 2026",
+          "text": "Прикольные персонажи для твоего бренда",
           "size": "xl",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#FF8C00"
+          "accentColor": "#00E5FF",
+          "enterAt": 10,
+          "enterTransition": "slideUp"
         },
+        {
+          "kind": "subtitle",
+          "text": "Лучшие маскоты 2024",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#00E5FF",
+          "enterAt": 20,
+          "exitAt": 60,
+          "enterTransition": "fade"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 90,
+      "backgroundColor": "#121212",
+      "textColor": "#FFFFFF",
+      "accentColor": "#4CAF50",
+      "align": "right",
+      "media": {
+        "assetId": "user-asset-1",
+        "mode": "side",
+        "position": "left",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.38,
+        "focalPoint": "center"
+      },
+      "layers": [
         {
           "kind": "badge",
-          "text": "Прогноз экспертов",
-          "align": "center",
+          "text": "Персонаж #1",
+          "align": "right",
           "color": "#FFFFFF",
-          "accentColor": "#FF8C00"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#220000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FF0000",
-      "align": "center",
-      "media": {
-        "assetId": "user-photo-2",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.3
-      },
-      "blocks": [
+          "accentColor": "#4CAF50",
+          "enterAt": 0,
+          "enterTransition": "fade"
+        },
         {
           "kind": "heading",
-          "text": "Гиперавтоматизация",
+          "text": "Денежный Монстр",
           "size": "lg",
-          "align": "center",
+          "align": "right",
           "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#4CAF50",
+          "enterAt": 12,
+          "enterTransition": "slideUp"
         },
         {
           "kind": "body",
-          "text": "Полный отказ от рутины",
-          "align": "center",
+          "text": "Идеально подходит для финансовых сервисов и банков.",
+          "align": "right",
           "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#4CAF50",
+          "enterAt": 24,
+          "enterTransition": "fade"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#002200",
+      "duration": 90,
+      "backgroundColor": "#1A1A1A",
       "textColor": "#FFFFFF",
-      "accentColor": "#008000",
-      "align": "center",
+      "accentColor": "#FFD600",
+      "align": "left",
       "media": {
-        "assetId": "user-photo-1",
-        "mode": "background",
+        "assetId": "user-asset-3",
+        "mode": "side",
+        "position": "right",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.3
+        "overlayOpacity": 0.38,
+        "focalPoint": "top"
       },
-      "blocks": [
+      "layers": [
+        {
+          "kind": "badge",
+          "text": "Персонаж #2",
+          "align": "left",
+          "color": "#FFFFFF",
+          "accentColor": "#FFD600",
+          "enterAt": 0,
+          "enterTransition": "fade"
+        },
         {
           "kind": "heading",
-          "text": "Зеленый софт",
+          "text": "Проводник Амири",
           "size": "lg",
-          "align": "center",
+          "align": "left",
           "color": "#FFFFFF",
-          "accentColor": "#008000"
+          "accentColor": "#FFD600",
+          "enterAt": 12,
+          "enterTransition": "slideUp"
         },
         {
           "kind": "body",
-          "text": "Углеродно-нейтральное IT",
-          "align": "center",
+          "text": "Матрица судьбы и порядок в делах.",
+          "align": "left",
           "color": "#FFFFFF",
-          "accentColor": "#008000"
+          "accentColor": "#FFD600",
+          "enterAt": 24,
+          "enterTransition": "fade"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#220000",
+      "duration": 90,
+      "backgroundColor": "#000000",
       "textColor": "#FFFFFF",
-      "accentColor": "#FF0000",
+      "accentColor": "#FF3D00",
       "align": "center",
       "media": {
-        "assetId": "user-photo-2",
+        "assetId": "user-asset-2",
         "mode": "background",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.3
+        "overlayOpacity": 0.6,
+        "focalPoint": "center"
       },
-      "blocks": [
+      "layers": [
         {
           "kind": "heading",
-          "text": "Квантовые вычисления",
+          "text": "Магистр Расчетов",
           "size": "lg",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#FF3D00",
+          "enterAt": 10,
+          "enterTransition": "scale"
         },
         {
-          "kind": "body",
-          "text": "Переход в облачный стек",
+          "kind": "quote",
+          "text": "Цифры не врут, если их правильно считать.",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#FF3D00",
+          "enterAt": 25,
+          "enterTransition": "fade"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#002200",
+      "duration": 100,
+      "backgroundColor": "#0F172A",
       "textColor": "#FFFFFF",
-      "accentColor": "#008000",
+      "accentColor": "#00FFC2",
       "align": "center",
-      "media": {
-        "assetId": "user-photo-1",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.3
-      },
-      "blocks": [
+      "layers": [
         {
           "kind": "heading",
-          "text": "Киберустойчивость",
-          "size": "lg",
+          "text": "Кто твой фаворит?",
+          "size": "xl",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#008000"
+          "accentColor": "#00FFC2",
+          "enterAt": 10,
+          "enterTransition": "slideUp"
         },
         {
-          "kind": "body",
-          "text": "Самозалечивающийся код",
+          "kind": "list",
+          "items": [
+            "Денежный Монстр",
+            "Проводник Амири",
+            "Мастер Цифр"
+          ],
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#008000"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 30,
-      "backgroundColor": "#220000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FF0000",
-      "align": "center",
-      "media": {
-        "assetId": "user-photo-2",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.3
-      },
-      "blocks": [
-        {
-          "kind": "heading",
-          "text": "Mesh-архитектура",
-          "size": "lg",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#00FFC2",
+          "enterAt": 30,
+          "enterTransition": "fade"
         },
         {
           "kind": "cta",
-          "title": "Узнать подробности",
-          "action": "Подписаться",
+          "title": "Создай своего героя",
+          "action": "Пиши в директ",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#FF0000"
+          "accentColor": "#00FFC2",
+          "enterAt": 60,
+          "enterTransition": "scale"
         }
       ]
     }

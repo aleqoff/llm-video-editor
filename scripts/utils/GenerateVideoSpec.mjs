@@ -15,24 +15,41 @@ const logStep = (step, message) => {
   console.log(`✅${step}) ${message}`);
 };
 
-const createImagePart = (asset) => {
-  return {
-    inlineData: {
-      mimeType: asset.mimeType,
-      data: asset.base64Data,
-    },
-  };
+const createImagePart = (asset) => ({
+  inlineData: {
+    mimeType: asset.mimeType,
+    data: asset.base64Data,
+  },
+});
+
+const createAssetParts = (asset) => {
+  if (asset.type === 'video') {
+    if (!asset.thumbnails?.length) return [];
+    return asset.thumbnails.map((thumb) => ({
+      inlineData: {
+        mimeType: 'image/jpeg',
+        data: thumb.base64Data,
+      },
+    }));
+  }
+  if (!asset.base64Data) return [];
+  return [createImagePart(asset)];
 };
 
 const createAssetSummary = (asset) => {
-  return {
+  const base = {
     id: asset.id,
-    type: 'image',
+    type: asset.type ?? 'image',
     src: asset.src,
     alt: asset.alt,
     width: asset.width,
     height: asset.height,
   };
+  if (asset.type === 'video') {
+    if (asset.durationSeconds != null) base.durationSeconds = asset.durationSeconds;
+    if (asset.fps != null) base.fps = asset.fps;
+  }
+  return base;
 };
 
 export const generateVideoSpecByTopic = async (topic, assets = []) => {
@@ -43,7 +60,9 @@ export const generateVideoSpecByTopic = async (topic, assets = []) => {
   }
 
   logStep(1, 'Начата подготовка запроса к LLM.');
-  logStep(2, `Подготовлены данные темы и ${assets.length} image asset(s).`);
+  const imageCount = assets.filter((a) => a.type !== 'video').length;
+  const videoCount = assets.filter((a) => a.type === 'video').length;
+  logStep(2, `Подготовлены данные темы, ${imageCount} image(s) и ${videoCount} video(s).`);
 
   const model = genAI.getGenerativeModel({
     model: 'gemini-flash-latest',
@@ -63,10 +82,8 @@ export const generateVideoSpecByTopic = async (topic, assets = []) => {
   console.log('\nEnd of prompt.\n');
 
   const parts = [
-    ...assets.map(createImagePart),
-    {
-      text: prompt,
-    },
+    ...assets.flatMap(createAssetParts),
+    { text: prompt },
   ];
 
   logStep(4, 'Отправлен запрос к LLM.');

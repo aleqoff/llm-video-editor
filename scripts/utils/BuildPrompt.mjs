@@ -1,19 +1,21 @@
 const describeAssetsForPrompt = (assets) => {
   if (!assets.length) {
-    return 'No user images were provided.';
+    return 'No user assets were provided.';
   }
 
   return assets
-    .map(
-      (asset) =>
-        `- assetId: "${asset.id}", type: "image", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}`,
-    )
+    .map((asset) => {
+      if (asset.type === 'video') {
+        return `- assetId: "${asset.id}", type: "video", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}, durationSeconds: ${asset.durationSeconds ?? '?'}, fps: ${asset.fps ?? 30}`;
+      }
+      return `- assetId: "${asset.id}", type: "image", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}`;
+    })
     .join('\n');
 };
 
 export const buildPrompt = ({ topic, assets = [] }) => `
-You are an AI creative strategist for vertical business videos.
-Your job is not to fill rigid scene templates. Your job is to compose each scene from reusable content blocks.
+You are an AI creative director and video editor for short-form vertical business videos.
+Your job is to direct the video like a real editor: choose media for each scene, place content layers on top, control when each layer appears and disappears.
 
 Create a short-form vertical video plan for the topic: "${topic}".
 
@@ -31,8 +33,8 @@ Return strictly valid JSON without markdown or explanations using this contract:
       "type": "image",
       "src": "uploads/example.jpg",
       "alt": "Short image description",
-      "width": 1200,
-      "height": 1600
+      "width": 800,
+      "height": 800
     }
   ],
   "scenes": [
@@ -47,27 +49,36 @@ Return strictly valid JSON without markdown or explanations using this contract:
         "assetId": "user-photo-1",
         "mode": "background",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.42
+        "overlayOpacity": 0.42,
+        "focalPoint": "center"
       },
-      "blocks": [
+      "layers": [
         {
           "kind": "badge",
-          "text": "Trend 2026"
-        },
-        {
-          "kind": "image",
-          "assetId": "user-photo-1",
-          "display": "card",
-          "caption": "Founder photo"
+          "text": "Trend 2026",
+          "enterAt": 0,
+          "enterTransition": "fade"
         },
         {
           "kind": "heading",
           "text": "How small business survives in 2026",
-          "size": "xl"
+          "size": "xl",
+          "enterAt": 8,
+          "enterTransition": "slideUp"
         },
         {
           "kind": "body",
-          "text": "Short scene explanation"
+          "text": "Short scene explanation",
+          "enterAt": 18,
+          "enterTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Small business in 2026",
+          "enterAt": 0,
+          "exitAt": 90,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
         }
       ]
     },
@@ -83,17 +94,22 @@ Return strictly valid JSON without markdown or explanations using this contract:
         "mode": "side",
         "position": "right",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.10
+        "overlayOpacity": 0.10,
+        "focalPoint": "top"
       },
-      "blocks": [
+      "layers": [
         {
           "kind": "heading",
           "text": "3 practical moves",
-          "size": "md"
+          "size": "md",
+          "enterAt": 0,
+          "enterTransition": "slideUp"
         },
         {
           "kind": "list",
-          "items": ["Move 1", "Move 2", "Move 3"]
+          "items": ["Move 1", "Move 2", "Move 3"],
+          "enterAt": 12,
+          "enterTransition": "fade"
         }
       ]
     },
@@ -104,16 +120,21 @@ Return strictly valid JSON without markdown or explanations using this contract:
       "textColor": "#FFFFFF",
       "accentColor": "#FFD166",
       "align": "center",
-      "blocks": [
+      "layers": [
         {
           "kind": "stat",
           "value": "85%",
-          "label": "customers expect AI-assisted service"
+          "label": "customers expect AI-assisted service",
+          "enterAt": 0,
+          "enterTransition": "scale"
         },
         {
           "kind": "cta",
           "title": "Prepare the business now",
-          "action": "Save this checklist"
+          "action": "Save this checklist",
+          "enterAt": 20,
+          "enterTransition": "slideUp",
+          "exitTransition": "fade"
         }
       ]
     }
@@ -123,7 +144,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
 Allowed scene type:
 - "composition"
 
-Allowed block kinds:
+Allowed layer kinds:
 - "heading"
 - "body"
 - "list"
@@ -133,6 +154,21 @@ Allowed block kinds:
 - "badge"
 - "divider"
 - "image"
+- "subtitle"
+
+Layer timing fields (optional, integers in frames):
+- "enterAt": frame within the scene when this layer appears (default: 0)
+- "exitAt": frame within the scene when this layer disappears (default: scene duration)
+- "opacity": 0.0–1.0 (default: 1)
+- "enterTransition": "fade" | "slideUp" | "slideLeft" | "scale" | "none"
+- "exitTransition": "fade" | "slideDown" | "scale" | "none"
+
+Scene media fields:
+- "mode": "background" | "frame" | "side"
+- "position": "left" | "right" (only when mode is "side")
+- "focalPoint": "center" | "top" | "bottom"
+- "trimStart": seconds from start of video to begin playing (only for video assets)
+- "trimEnd": seconds from start of video to stop playing (only for video assets)
 
 Available user assets:
 ${describeAssetsForPrompt(assets)}
@@ -140,9 +176,11 @@ ${describeAssetsForPrompt(assets)}
 Rules:
 - At least 3 scenes.
 - Every scene must be type "composition".
-- Every scene must contain 1 to 5 meaningful blocks.
-- Use only the allowed block kinds.
-- Duration must be an integer number of frames.
+- Use the "layers" field, not "blocks".
+- Every scene must contain 1 to 8 meaningful layers.
+- Use only the allowed layer kinds.
+- Duration must be an integer number of frames (at 30fps: 30 frames = 1 second).
+- For video assets as media: if trimStart and trimEnd are provided, set scene duration = round((trimEnd - trimStart) * fps).
 - Colors must be valid HEX.
 - "heading" is for the main message.
 - "body" is for supporting context.
@@ -150,20 +188,21 @@ Rules:
 - "stat" must use a short value and a clear label.
 - "quote" is for one strong thesis.
 - "cta" should be used near the end, not in every scene.
+- "subtitle" is for captions at the bottom of the frame — use for key phrases, not full sentences.
 - Keep text concise and useful for a business audience.
-- Vary the block combinations between scenes. Do not repeat the exact same structure every time.
-- Keep all assets from the input "assets" array unchanged in the output. Copy each asset's id, src, alt, width, and height exactly as listed in "Available user assets" above. Do not invent or modify any asset field.
-- Preserve each asset width and height exactly as provided in the input assets array.
+- Use layer timing (enterAt) to stagger layers for dynamic effect: badge first, then heading after 8–12 frames, then body after 16–20 frames.
+- Vary the layer combinations between scenes. Do not repeat the exact same structure every time.
+- Keep all assets from the input "assets" array unchanged in the output. Copy each asset's id, type, src, alt, width, and height exactly. Do not invent or modify any asset field.
+- For video assets, also preserve durationSeconds and fps exactly.
 - Use scene.media only when it materially improves the composition.
-- You may use up to 7 user images across the video.
-- If multiple images are available, distribute them thoughtfully across scenes or use more than one image block in a scene when useful.
-- Use "image" blocks when you want inline visual cards inside the composition, not only background media.
-- Respect image orientation and dimensions when choosing layout: portrait images fit well as side cards or frames, wide images fit well as background or strip blocks.
 - media.mode can only be "background", "frame", or "side".
-- Use "position" only when media.mode is "side".
-- If user images are provided, use at least one of them in at least one scene.
-- Use the actual image contents when deciding whether the image should be background, frame, or side.
-- The result should feel useful for real business communication: educational, persuasive, or conversion-oriented.
+- focalPoint "top" is best for portrait images and video with a subject in the upper area.
+- If user video assets are provided: use them as media background with trimStart/trimEnd to cut the best segment.
+- If user image assets are provided, use at least one of them in at least one scene.
+- You may use up to 7 user assets across the video.
+- Use "image" layers for inline visual cards when the asset is a photo, not only as background media.
+- Respect image orientation: portrait → side card or frame mode; wide → background or strip.
+- The result should feel like a professionally edited Reels or TikTok video: dynamic, punchy, and useful for a business audience.
 `;
 
 export default buildPrompt;

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { AbsoluteFill, Img, staticFile } from 'remotion';
-import type { VideoAsset, VideoScene } from '../../../domain/video-schema';
+import { AbsoluteFill, Img, Video, staticFile, useVideoConfig } from 'remotion';
+import type { SceneMedia, VideoAsset, VideoScene } from '../../../domain/video-schema';
 
 type SceneFrameProps = {
   scene: VideoScene;
@@ -15,10 +15,6 @@ const resolveAssetSrc = (src: string): string => {
   }
 
   return staticFile(src.replace(/^\/+/, ''));
-};
-
-const renderImage = (asset: VideoAsset, style: CSSProperties) => {
-  return <Img src={resolveAssetSrc(asset.src)} alt={asset.alt} style={style} />;
 };
 
 const getAssetAspectRatio = (asset: VideoAsset): number => {
@@ -41,25 +37,56 @@ const getObjectPosition = (focalPoint: 'center' | 'top' | 'bottom' | undefined):
 const getObjectFit = (ratio: number): 'cover' | 'contain' =>
   ratio >= 0.75 && ratio <= 1.35 ? 'contain' : 'cover';
 
+const resolveFocalPoint = (
+  mediaFocalPoint: SceneMedia['focalPoint'],
+  aspectRatio: number,
+): 'center' | 'top' | 'bottom' => {
+  if (mediaFocalPoint) return mediaFocalPoint;
+  return aspectRatio < 0.8 ? 'top' : 'center';
+};
+
+const renderMedia = (
+  asset: VideoAsset,
+  style: CSSProperties,
+  trimStartFrames: number,
+): ReactNode => {
+  if (asset.type === 'video') {
+    return (
+      <Video
+        src={resolveAssetSrc(asset.src)}
+        startFrom={trimStartFrames}
+        style={style}
+        muted
+      />
+    );
+  }
+
+  return <Img src={resolveAssetSrc(asset.src)} alt={asset.alt} style={style} />;
+};
+
 export const SceneFrame: React.FC<SceneFrameProps> = ({
   scene,
   asset,
   children,
   contentStyle,
 }) => {
+  const { fps } = useVideoConfig();
   const media = scene.media && asset ? scene.media : undefined;
+  const trimStartFrames = media?.trimStart ? Math.round(media.trimStart * fps) : 0;
 
   if (media?.mode === 'background' && asset) {
     const aspectRatio = getAssetAspectRatio(asset);
+    const objectFit = getObjectFit(aspectRatio);
+    const focalPoint = resolveFocalPoint(media.focalPoint, aspectRatio);
 
     return (
       <AbsoluteFill style={{ backgroundColor: scene.backgroundColor }}>
-        {renderImage(asset, {
+        {renderMedia(asset, {
           width: '100%',
           height: '100%',
-          objectFit: getObjectFit(aspectRatio),
-          objectPosition: getObjectFit(aspectRatio) === 'contain' ? 'center center' : getObjectPosition(aspectRatio < 0.8 ? 'top' : 'center'),
-        })}
+          objectFit,
+          objectPosition: objectFit === 'contain' ? 'center center' : getObjectPosition(focalPoint),
+        }, trimStartFrames)}
         <AbsoluteFill
           style={{
             backgroundColor: media.overlayColor,
@@ -81,6 +108,8 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
 
   if (media?.mode === 'frame' && asset) {
     const aspectRatio = getAssetAspectRatio(asset);
+    const objectFit = getObjectFit(aspectRatio);
+    const isPortrait = aspectRatio < 0.9;
 
     return (
       <AbsoluteFill style={{ backgroundColor: scene.backgroundColor }}>
@@ -90,19 +119,19 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
             top: 72,
             left: 72,
             right: 72,
-            height: aspectRatio < 0.9 ? 920 : 760,
+            height: isPortrait ? 920 : 760,
             overflow: 'hidden',
             borderRadius: 36,
             boxShadow: '0 24px 70px rgba(0, 0, 0, 0.28)',
           }}
         >
-          {renderImage(asset, {
+          {renderMedia(asset, {
             width: '100%',
             height: '100%',
-            objectFit: getObjectFit(aspectRatio),
-            objectPosition: getObjectFit(aspectRatio) === 'contain' ? 'center center' : getObjectPosition('top'),
+            objectFit,
+            objectPosition: objectFit === 'contain' ? 'center center' : getObjectPosition(media.focalPoint ?? 'top'),
             backgroundColor: '#050B14',
-          })}
+          }, trimStartFrames)}
           <div
             style={{
               position: 'absolute',
@@ -114,8 +143,7 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
         </div>
         <AbsoluteFill
           style={{
-            padding: '900px 72px 96px',
-            ...(aspectRatio < 0.9 ? { padding: '1060px 72px 96px' } : null),
+            padding: isPortrait ? '1060px 72px 96px' : '900px 72px 96px',
             zIndex: 2,
             ...contentStyle,
           }}
@@ -129,8 +157,9 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
   if (media?.mode === 'side' && asset) {
     const imageFirst = media.position === 'left';
     const aspectRatio = getAssetAspectRatio(asset);
+    const objectFit = getObjectFit(aspectRatio);
 
-    const imageBlock = (
+    const mediaBlock = (
       <div
         style={{
           position: 'relative',
@@ -141,13 +170,13 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
           boxShadow: '0 24px 70px rgba(0, 0, 0, 0.24)',
         }}
       >
-        {renderImage(asset, {
+        {renderMedia(asset, {
           width: '100%',
           height: '100%',
-          objectFit: getObjectFit(aspectRatio),
-          objectPosition: getObjectFit(aspectRatio) === 'contain' ? 'center center' : getObjectPosition('top'),
+          objectFit,
+          objectPosition: objectFit === 'contain' ? 'center center' : getObjectPosition(media.focalPoint ?? 'top'),
           backgroundColor: '#050B14',
-        })}
+        }, trimStartFrames)}
         <div
           style={{
             position: 'absolute',
@@ -171,7 +200,7 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({
             alignItems: 'stretch',
           }}
         >
-          {imageBlock}
+          {mediaBlock}
           <div
             style={{
               flex: 1,

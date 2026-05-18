@@ -3,19 +3,85 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ffmpegStatic from 'ffmpeg-static';
+import Ffmpeg from 'fluent-ffmpeg';
 import generateVideoSpecByTopic from './utils/GenerateVideoSpec.mjs';
+
+Ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, '../public');
 const uploadsDir = path.join(publicDir, 'uploads');
+const thumbsDir = path.join(uploadsDir, 'thumbs');
 
 const webPort = Number(process.env.VIDEO_ENGINE_WEB_PORT ?? 3010);
 const previewPort = Number(process.env.REMOTION_PREVIEW_PORT ?? 3000);
 const previewUrl = `http://localhost:${previewPort}`;
-const MAX_IMAGES = 7;
+const MAX_ASSETS = 7;
 
-const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+
+// ─── ffprobe helper ──────────────────────────────────────────────────────────
+
+const probeVideo = (filePath) =>
+  new Promise((resolve, reject) => {
+    Ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const videoStream = metadata.streams.find((s) => s.codec_type === 'video');
+      const durationSeconds = parseFloat(metadata.format.duration) || 0;
+      const fpsRaw = videoStream?.r_frame_rate ?? '30/1';
+      const [num, den] = fpsRaw.split('/').map(Number);
+      const fps = den ? Math.round(num / den) : 30;
+      const width = videoStream?.width ?? 1080;
+      const height = videoStream?.height ?? 1920;
+
+      resolve({ durationSeconds, fps, width, height });
+    });
+  });
+
+// Generate thumbnails at 0%, 25%, 50%, 75% of video duration.
+const generateThumbnails = (filePath, baseName, durationSeconds) =>
+  new Promise((resolve, reject) => {
+    fs.mkdirSync(thumbsDir, { recursive: true });
+
+    const count = 4;
+    const timestamps = Array.from({ length: count }, (_, i) =>
+      ((i / count) * durationSeconds).toFixed(2),
+    );
+
+    const fileNames = timestamps.map((ts) => `${baseName}-thumb-${ts}s.jpg`);
+
+    Ffmpeg(filePath)
+      .on('end', () => {
+        const results = fileNames.map((name) => {
+          const fullPath = path.join(thumbsDir, name);
+          const exists = fs.existsSync(fullPath);
+          return {
+            src: `uploads/thumbs/${name}`,
+            base64Data: exists
+              ? fs.readFileSync(fullPath).toString('base64')
+              : null,
+          };
+        });
+
+        resolve(results.filter((t) => t.base64Data !== null));
+      })
+      .on('error', reject)
+      .screenshots({
+        timestamps,
+        filename: `${baseName}-thumb-%ss.jpg`,
+        folder: thumbsDir,
+        size: '480x?',
+      });
+  });
+
+// ─── HTML ────────────────────────────────────────────────────────────────────
 
 const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -38,9 +104,7 @@ const html = `<!DOCTYPE html>
         --success: #98f5b2;
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         margin: 0;
@@ -89,29 +153,12 @@ const html = `<!DOCTYPE html>
         text-transform: uppercase;
       }
 
-      h1 {
-        margin: 0 0 12px;
-        font-size: 52px;
-        line-height: 0.95;
-      }
+      h1 { margin: 0 0 12px; font-size: 52px; line-height: 0.95; }
+      p { margin: 0; color: var(--muted); font-size: 20px; line-height: 1.55; }
 
-      p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 20px;
-        line-height: 1.55;
-      }
+      .grid { display: grid; gap: 22px; margin-top: 30px; }
 
-      .grid {
-        display: grid;
-        gap: 22px;
-        margin-top: 30px;
-      }
-
-      .field {
-        display: grid;
-        gap: 12px;
-      }
+      .field { display: grid; gap: 12px; }
 
       .label {
         font-size: 14px;
@@ -120,10 +167,7 @@ const html = `<!DOCTYPE html>
         color: rgba(247, 244, 234, 0.7);
       }
 
-      textarea,
-      input[type="file"] {
-        width: 100%;
-      }
+      textarea, input[type="file"] { width: 100%; }
 
       textarea {
         min-height: 180px;
@@ -138,8 +182,7 @@ const html = `<!DOCTYPE html>
         line-height: 1.45;
       }
 
-      textarea:focus,
-      input[type="file"]:focus {
+      textarea:focus, input[type="file"]:focus {
         outline: none;
         border-color: rgba(255, 122, 24, 0.45);
         box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.14);
@@ -152,10 +195,7 @@ const html = `<!DOCTYPE html>
         background: rgba(3, 8, 16, 0.58);
       }
 
-      input[type="file"] {
-        color: var(--muted);
-        font: inherit;
-      }
+      input[type="file"] { color: var(--muted); font: inherit; }
 
       .preview-list {
         display: grid;
@@ -171,7 +211,8 @@ const html = `<!DOCTYPE html>
         background: rgba(255, 255, 255, 0.04);
       }
 
-      .preview-card img {
+      .preview-card img,
+      .preview-card video {
         display: block;
         width: 100%;
         height: 140px;
@@ -186,11 +227,19 @@ const html = `<!DOCTYPE html>
         gap: 4px;
       }
 
-      .actions {
-        display: flex;
-        gap: 14px;
-        margin-top: 10px;
+      .preview-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        background: rgba(255, 122, 24, 0.22);
+        color: #ffb87a;
       }
+
+      .actions { display: flex; gap: 14px; margin-top: 10px; }
 
       button {
         border: none;
@@ -208,25 +257,11 @@ const html = `<!DOCTYPE html>
         background: linear-gradient(135deg, var(--accent-a) 0%, var(--accent-b) 85%);
       }
 
-      .secondary {
-        color: var(--text);
-        background: rgba(255, 255, 255, 0.08);
-      }
+      .secondary { color: var(--text); background: rgba(255, 255, 255, 0.08); }
 
-      .status {
-        min-height: 28px;
-        margin-top: 18px;
-        color: var(--muted);
-        font-size: 18px;
-      }
-
-      .status.error {
-        color: var(--danger);
-      }
-
-      .status.success {
-        color: var(--success);
-      }
+      .status { min-height: 28px; margin-top: 18px; color: var(--muted); font-size: 18px; }
+      .status.error { color: var(--danger); }
+      .status.success { color: var(--success); }
 
       .hint {
         margin-top: 18px;
@@ -236,25 +271,11 @@ const html = `<!DOCTYPE html>
       }
 
       @media (max-width: 720px) {
-        .card {
-          padding: 28px 20px;
-        }
-
-        h1 {
-          font-size: 40px;
-        }
-
-        p {
-          font-size: 18px;
-        }
-
-        textarea {
-          font-size: 18px;
-        }
-
-        .actions {
-          flex-direction: column;
-        }
+        .card { padding: 28px 20px; }
+        h1 { font-size: 40px; }
+        p { font-size: 18px; }
+        textarea { font-size: 18px; }
+        .actions { flex-direction: column; }
       }
     </style>
   </head>
@@ -262,10 +283,10 @@ const html = `<!DOCTYPE html>
     <main class="page">
       <section class="card">
         <div class="eyebrow">Video Engine Studio</div>
-        <h1>Тема, фото, JSON и сразу в Remotion</h1>
+        <h1>Тема, медиа, JSON и сразу в Remotion</h1>
         <p>
-          Добавь тему и одно или несколько изображений. Studio отправит всё в Gemini, получит
-          JSON со ссылками на <code>assetId</code> и откроет preview с уже встроенными медиа.
+          Добавь тему и свои фото или видеоклипы. Studio отправит всё в Gemini, он смонтирует
+          видео как режиссёр и откроет preview.
         </p>
 
         <form id="generate-form" class="grid">
@@ -279,11 +300,17 @@ const html = `<!DOCTYPE html>
           </label>
 
           <label class="field">
-            <span class="label">Фото для сцен</span>
+            <span class="label">Фото и видео для сцен</span>
             <div class="dropzone">
-              <input id="images" name="images" type="file" accept="image/*" multiple />
+              <input
+                id="media"
+                name="media"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+                multiple
+              />
               <div class="hint">
-                Пока поддерживаются изображения jpeg, png, webp, gif. Не больше ${MAX_IMAGES} фото за генерацию.
+                Изображения: jpeg, png, webp, gif. Видео: mp4, mov, webm. Не больше ${MAX_ASSETS} файлов.
               </div>
               <div id="preview-list" class="preview-list"></div>
             </div>
@@ -298,8 +325,8 @@ const html = `<!DOCTYPE html>
         </form>
 
         <div class="hint">
-          Изображения сохраняются локально в каталог <code>public/uploads</code> и затем
-          используются в Remotion как assets для сцен.
+          Файлы сохраняются в <code>public/uploads</code>. Для видео генерируются превью-кадры,
+          которые LLM использует как визуальный контекст при режиссуре монтажа.
         </div>
       </section>
     </main>
@@ -307,7 +334,7 @@ const html = `<!DOCTYPE html>
     <script>
       const form = document.getElementById('generate-form');
       const topicField = document.getElementById('topic');
-      const imagesField = document.getElementById('images');
+      const mediaField = document.getElementById('media');
       const previewList = document.getElementById('preview-list');
       const statusField = document.getElementById('status');
       const submitButton = document.getElementById('submit-button');
@@ -326,13 +353,11 @@ const html = `<!DOCTYPE html>
       const fileToBase64 = (file) =>
         new Promise((resolve, reject) => {
           const reader = new FileReader();
-
           reader.onload = () => {
             const result = typeof reader.result === 'string' ? reader.result : '';
             const base64Data = result.includes(',') ? result.split(',')[1] : result;
             resolve(base64Data);
           };
-
           reader.onerror = () => reject(new Error('Не удалось прочитать файл.'));
           reader.readAsDataURL(file);
         });
@@ -341,62 +366,92 @@ const html = `<!DOCTYPE html>
         new Promise((resolve, reject) => {
           const objectUrl = URL.createObjectURL(file);
           const image = new Image();
-
           image.onload = () => {
             URL.revokeObjectURL(objectUrl);
-            resolve({
-              width: image.naturalWidth,
-              height: image.naturalHeight,
-            });
+            resolve({ width: image.naturalWidth, height: image.naturalHeight });
           };
-
           image.onerror = () => {
             URL.revokeObjectURL(objectUrl);
-            reject(new Error('Не удалось определить размер изображения.'));
+            reject(new Error('Не удалось определить размер.'));
           };
-
           image.src = objectUrl;
+        });
+
+      const readVideoDimensions = (file) =>
+        new Promise((resolve, reject) => {
+          const objectUrl = URL.createObjectURL(file);
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve({
+              width: video.videoWidth || 1080,
+              height: video.videoHeight || 1920,
+              durationSeconds: video.duration || 0,
+            });
+          };
+          video.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Не удалось определить параметры видео.'));
+          };
+          video.src = objectUrl;
         });
 
       const renderPreviews = async () => {
         previewList.innerHTML = '';
-
-        const files = Array.from(imagesField.files || []);
+        const files = Array.from(mediaField.files || []);
 
         await Promise.all(files.map(async (file) => {
           const card = document.createElement('div');
           card.className = 'preview-card';
 
-          const image = document.createElement('img');
-          image.src = URL.createObjectURL(file);
-          image.alt = file.name;
+          const isVideo = file.type.startsWith('video/');
+
+          if (isVideo) {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.muted = true;
+            video.preload = 'metadata';
+            card.appendChild(video);
+          } else {
+            const image = document.createElement('img');
+            image.src = URL.createObjectURL(file);
+            image.alt = file.name;
+            card.appendChild(image);
+          }
 
           const meta = document.createElement('div');
           meta.className = 'preview-meta';
+
+          const badge = document.createElement('span');
+          badge.className = 'preview-type-badge';
+          badge.textContent = isVideo ? 'видео' : 'фото';
 
           const title = document.createElement('div');
           title.textContent = file.name;
 
           const details = document.createElement('div');
           try {
-            const dimensions = await readImageDimensions(file);
-            details.textContent = dimensions.width + ' x ' + dimensions.height + ' px';
+            if (isVideo) {
+              const info = await readVideoDimensions(file);
+              details.textContent = info.width + ' x ' + info.height + ' · ' + info.durationSeconds.toFixed(1) + 'с';
+            } else {
+              const dims = await readImageDimensions(file);
+              details.textContent = dims.width + ' x ' + dims.height + ' px';
+            }
           } catch {
             details.textContent = 'Размер не определён';
           }
 
+          meta.appendChild(badge);
           meta.appendChild(title);
           meta.appendChild(details);
-
-          card.appendChild(image);
           card.appendChild(meta);
           previewList.appendChild(card);
         }));
       };
 
-      imagesField.addEventListener('change', () => {
-        void renderPreviews();
-      });
+      mediaField.addEventListener('change', () => { void renderPreviews(); });
 
       previewButton.addEventListener('click', () => {
         window.open(previewUrl, '_blank', 'noopener,noreferrer');
@@ -406,49 +461,64 @@ const html = `<!DOCTYPE html>
         event.preventDefault();
 
         const topic = topicField.value.trim();
-        const files = Array.from(imagesField.files || []);
+        const files = Array.from(mediaField.files || []);
 
         if (!topic) {
           setStatus('Введите тему видео перед генерацией.', 'error');
           return;
         }
 
-        if (files.length > ${MAX_IMAGES}) {
-          setStatus('Можно загрузить не больше ${MAX_IMAGES} фото за один раз.', 'error');
+        if (files.length > ${MAX_ASSETS}) {
+          setStatus(\`Можно загрузить не больше ${MAX_ASSETS} файлов за один раз.\`, 'error');
           return;
         }
 
         submitButton.disabled = true;
         previewButton.disabled = true;
-        setStatus('Загружаем изображения и собираем новый JSON...');
+        setStatus('Загружаем медиа и собираем новый JSON...');
 
         try {
-          const imagePayloads = await Promise.all(
+          const mediaPayloads = await Promise.all(
             files.map(async (file) => {
-              const [base64Data, dimensions] = await Promise.all([
-                fileToBase64(file),
-                readImageDimensions(file),
-              ]);
+              const isVideo = file.type.startsWith('video/');
+              const base64Data = await fileToBase64(file);
 
+              if (isVideo) {
+                let width = 1080, height = 1920, durationSeconds = 0;
+                try {
+                  const info = await readVideoDimensions(file);
+                  width = info.width;
+                  height = info.height;
+                  durationSeconds = info.durationSeconds;
+                } catch {}
+
+                return {
+                  name: file.name,
+                  mimeType: file.type || 'video/mp4',
+                  base64Data,
+                  width,
+                  height,
+                  durationSeconds,
+                  isVideo: true,
+                };
+              }
+
+              const [dims] = await Promise.all([readImageDimensions(file)]);
               return {
                 name: file.name,
                 mimeType: file.type || 'image/jpeg',
                 base64Data,
-                width: dimensions.width,
-                height: dimensions.height,
+                width: dims.width,
+                height: dims.height,
+                isVideo: false,
               };
             }),
           );
 
           const response = await fetch('/api/generate', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              topic,
-              images: imagePayloads,
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, images: mediaPayloads }),
           });
 
           const payload = await response.json();
@@ -470,56 +540,41 @@ const html = `<!DOCTYPE html>
   </body>
 </html>`;
 
-const sendJson = (response, statusCode, payload) => {
-  response.writeHead(statusCode, {
-    'Content-Type': 'application/json; charset=utf-8',
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const sendJson = (response, statusCode, payload) => {
+  response.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify(payload));
 };
 
 const sendHtml = (response, markup) => {
-  response.writeHead(200, {
-    'Content-Type': 'text/html; charset=utf-8',
-  });
-
+  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   response.end(markup);
 };
 
-const readJsonBody = (request) => {
-  return new Promise((resolve, reject) => {
+const readJsonBody = (request) =>
+  new Promise((resolve, reject) => {
     let body = '';
-
-    request.on('data', (chunk) => {
-      body += chunk;
-    });
-
+    request.on('data', (chunk) => { body += chunk; });
     request.on('end', () => {
-      try {
-        resolve(JSON.parse(body || '{}'));
-      } catch (error) {
-        reject(error);
-      }
+      try { resolve(JSON.parse(body || '{}')); }
+      catch (error) { reject(error); }
     });
-
     request.on('error', reject);
   });
-};
 
-const sanitizeSegment = (value) => {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
-};
+const sanitizeSegment = (value) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'file';
 
-const getExtensionFromMimeType = (mimeType) => {
+const getExtension = (mimeType) => {
   switch (mimeType) {
-    case 'image/png':
-      return 'png';
-    case 'image/webp':
-      return 'webp';
-    case 'image/gif':
-      return 'gif';
-    default:
-      return 'jpg';
+    case 'image/png': return 'png';
+    case 'image/webp': return 'webp';
+    case 'image/gif': return 'gif';
+    case 'video/mp4': return 'mp4';
+    case 'video/quicktime': return 'mov';
+    case 'video/webm': return 'webm';
+    default: return 'jpg';
   }
 };
 
@@ -527,57 +582,110 @@ const ensureUploadsDir = () => {
   fs.mkdirSync(uploadsDir, { recursive: true });
 };
 
-const saveImages = (images) => {
+// ─── saveMedia ────────────────────────────────────────────────────────────────
+
+const saveMedia = async (files) => {
   ensureUploadsDir();
 
-  if (images.length > MAX_IMAGES) {
-    throw new Error(`Only up to ${MAX_IMAGES} images are supported per generation.`);
+  if (files.length > MAX_ASSETS) {
+    throw new Error(`Only up to ${MAX_ASSETS} files are supported per generation.`);
   }
 
-  return images.map((image, index) => {
-    if (!image || typeof image !== 'object') {
-      throw new Error(`Image ${index + 1} payload is invalid.`);
+  const results = [];
+
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+
+    if (!file || typeof file !== 'object') {
+      throw new Error(`File ${index + 1} payload is invalid.`);
     }
 
-    const mimeType = typeof image.mimeType === 'string' ? image.mimeType.trim().toLowerCase() : '';
+    const mimeType = typeof file.mimeType === 'string' ? file.mimeType.trim().toLowerCase() : '';
+    const isVideo = file.isVideo === true || ALLOWED_VIDEO_TYPES.has(mimeType);
+    const isImage = ALLOWED_IMAGE_TYPES.has(mimeType);
 
-    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-      throw new Error(`Unsupported image type for file ${index + 1}: ${mimeType || 'unknown'}.`);
+    if (!isVideo && !isImage) {
+      throw new Error(`Unsupported file type for item ${index + 1}: ${mimeType || 'unknown'}.`);
     }
 
-    const base64Data = typeof image.base64Data === 'string' ? image.base64Data.trim() : '';
-    const width = typeof image.width === 'number' ? image.width : Number(image.width);
-    const height = typeof image.height === 'number' ? image.height : Number(image.height);
+    const base64Data = typeof file.base64Data === 'string' ? file.base64Data.trim() : '';
 
     if (!base64Data) {
-      throw new Error(`Image ${index + 1} does not contain base64 data.`);
+      throw new Error(`File ${index + 1} does not contain base64 data.`);
     }
 
-    if (!Number.isInteger(width) || width < 1 || !Number.isInteger(height) || height < 1) {
-      throw new Error(`Image ${index + 1} must include valid width and height.`);
-    }
-
-    const originalName = typeof image.name === 'string' ? image.name.trim() : `image-${index + 1}`;
+    const originalName = typeof file.name === 'string' ? file.name.trim() : `file-${index + 1}`;
     const safeName = sanitizeSegment(originalName.replace(/\.[^.]+$/, ''));
     const uniqueHash = crypto.randomBytes(6).toString('hex');
-    const extension = getExtensionFromMimeType(mimeType);
+    const extension = getExtension(mimeType);
     const fileName = `${Date.now()}-${safeName}-${uniqueHash}.${extension}`;
     const absolutePath = path.join(uploadsDir, fileName);
 
     fs.writeFileSync(absolutePath, Buffer.from(base64Data, 'base64'));
 
-    return {
-      id: `user-photo-${index + 1}`,
-      type: 'image',
-      src: `uploads/${fileName}`,
-      alt: originalName,
-      width,
-      height,
-      mimeType,
-      base64Data,
-    };
-  });
+    if (isVideo) {
+      const clientWidth = typeof file.width === 'number' ? file.width : Number(file.width) || 1080;
+      const clientHeight = typeof file.height === 'number' ? file.height : Number(file.height) || 1920;
+      const clientDuration = typeof file.durationSeconds === 'number' ? file.durationSeconds : 0;
+
+      // ffprobe for accurate metadata
+      let durationSeconds = clientDuration;
+      let fps = 30;
+      let width = clientWidth;
+      let height = clientHeight;
+
+      try {
+        const probe = await probeVideo(absolutePath);
+        durationSeconds = probe.durationSeconds || durationSeconds;
+        fps = probe.fps || fps;
+        width = probe.width || width;
+        height = probe.height || height;
+      } catch {}
+
+      // 4 thumbnail frames for LLM context
+      let thumbnails = [];
+      try {
+        const baseName = `${safeName}-${uniqueHash}`;
+        thumbnails = await generateThumbnails(absolutePath, baseName, durationSeconds);
+      } catch {}
+
+      results.push({
+        id: `user-asset-${index + 1}`,
+        type: 'video',
+        src: `uploads/${fileName}`,
+        alt: originalName,
+        width,
+        height,
+        durationSeconds,
+        fps,
+        mimeType,
+        thumbnails,
+      });
+    } else {
+      const width = typeof file.width === 'number' ? file.width : Number(file.width);
+      const height = typeof file.height === 'number' ? file.height : Number(file.height);
+
+      if (!Number.isInteger(width) || width < 1 || !Number.isInteger(height) || height < 1) {
+        throw new Error(`Image ${index + 1} must include valid width and height.`);
+      }
+
+      results.push({
+        id: `user-asset-${index + 1}`,
+        type: 'image',
+        src: `uploads/${fileName}`,
+        alt: originalName,
+        width,
+        height,
+        mimeType,
+        base64Data,
+      });
+    }
+  }
+
+  return results;
 };
+
+// ─── Server ───────────────────────────────────────────────────────────────────
 
 const server = http.createServer(async (request, response) => {
   if (!request.url) {
@@ -599,8 +707,8 @@ const server = http.createServer(async (request, response) => {
     try {
       const payload = await readJsonBody(request);
       const topic = typeof payload.topic === 'string' ? payload.topic : '';
-      const images = Array.isArray(payload.images) ? payload.images : [];
-      const savedAssets = saveImages(images);
+      const files = Array.isArray(payload.images) ? payload.images : [];
+      const savedAssets = await saveMedia(files);
       const videoSpec = await generateVideoSpecByTopic(topic, savedAssets);
 
       sendJson(response, 200, { ok: true, previewUrl, videoSpec });

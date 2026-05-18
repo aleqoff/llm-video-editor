@@ -26,6 +26,9 @@ export const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const sceneMediaModeSchema = z.enum(['background', 'frame', 'side']);
 const sceneMediaPositionSchema = z.enum(['left', 'right']);
 const sceneAlignSchema = z.enum(['left', 'center', 'right']);
+const focalPointSchema = z.enum(['center', 'top', 'bottom']);
+const enterTransitionSchema = z.enum(['fade', 'slideUp', 'slideLeft', 'scale', 'none']);
+const exitTransitionSchema = z.enum(['fade', 'slideDown', 'scale', 'none']);
 
 const rawVideoConfigSchema = z
   .object({
@@ -37,11 +40,13 @@ const rawVideoConfigSchema = z
 
 const rawAssetSchema = z.object({
   id: z.string().trim().min(1),
-  type: z.literal('image').optional(),
+  type: z.enum(['image', 'video']).optional(),
   src: z.string().trim().min(1),
   alt: z.string().trim().optional(),
   width: z.coerce.number().int().positive().optional(),
   height: z.coerce.number().int().positive().optional(),
+  durationSeconds: z.coerce.number().positive().optional(),
+  fps: z.coerce.number().positive().optional(),
 });
 
 const rawSceneMediaSchema = z.object({
@@ -50,6 +55,9 @@ const rawSceneMediaSchema = z.object({
   position: sceneMediaPositionSchema.optional(),
   overlayColor: z.string().trim().optional(),
   overlayOpacity: z.coerce.number().optional(),
+  focalPoint: focalPointSchema.optional(),
+  trimStart: z.coerce.number().min(0).optional(),
+  trimEnd: z.coerce.number().min(0).optional(),
 });
 
 const rawBlockSchema = z
@@ -63,6 +71,8 @@ const rawSceneSchema = z
   .object({
     type: z.string().trim().optional(),
     media: rawSceneMediaSchema.optional(),
+    // layers — новое имя поля; blocks — обратная совместимость
+    layers: z.array(rawBlockSchema).optional(),
     blocks: z.array(rawBlockSchema).optional(),
   })
   .passthrough();
@@ -82,11 +92,13 @@ export const videoConfigSchema = z.object({
 
 export const assetSchema = z.object({
   id: z.string().trim().min(1).max(80),
-  type: z.literal('image'),
+  type: z.enum(['image', 'video']),
   src: z.string().trim().min(1).max(2048),
   alt: z.string().trim().min(1).max(240),
   width: z.number().int().min(1).max(12000),
   height: z.number().int().min(1).max(12000),
+  durationSeconds: z.number().positive().optional(),
+  fps: z.number().positive().optional(),
 });
 
 export const sceneMediaSchema = z.object({
@@ -95,64 +107,78 @@ export const sceneMediaSchema = z.object({
   position: sceneMediaPositionSchema.optional(),
   overlayColor: z.string().regex(HEX_COLOR_PATTERN),
   overlayOpacity: z.number().min(0).max(0.95),
+  focalPoint: focalPointSchema.optional(),
+  trimStart: z.number().min(0).optional(),
+  trimEnd: z.number().min(0).optional(),
 });
 
+// Базовые поля блока (цвет, выравнивание) — без тайминга
 const blockBaseShape = {
   align: sceneAlignSchema.optional(),
   color: z.string().regex(HEX_COLOR_PATTERN).optional(),
   accentColor: z.string().regex(HEX_COLOR_PATTERN).optional(),
 };
 
+// Расширение blockBaseShape — добавляет per-layer тайминг и переходы
+const layerBaseShape = {
+  ...blockBaseShape,
+  enterAt: z.number().int().min(0).optional(),
+  exitAt: z.number().int().min(0).optional(),
+  opacity: z.number().min(0).max(1).optional(),
+  enterTransition: enterTransitionSchema.optional(),
+  exitTransition: exitTransitionSchema.optional(),
+};
+
 export const headingBlockSchema = z.object({
   kind: z.literal('heading'),
   text: z.string().trim().min(1).max(220),
   size: z.enum(['sm', 'md', 'lg', 'xl']).optional(),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const bodyBlockSchema = z.object({
   kind: z.literal('body'),
   text: z.string().trim().min(1).max(280),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const listBlockSchema = z.object({
   kind: z.literal('list'),
   title: z.string().trim().min(1).max(120).optional(),
   items: z.array(z.string().trim().min(1).max(120)).min(2).max(5),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const statBlockSchema = z.object({
   kind: z.literal('stat'),
   value: z.string().trim().min(1).max(24),
   label: z.string().trim().min(1).max(140),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const quoteBlockSchema = z.object({
   kind: z.literal('quote'),
   text: z.string().trim().min(1).max(220),
   author: z.string().trim().min(1).max(80).optional(),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const ctaBlockSchema = z.object({
   kind: z.literal('cta'),
   title: z.string().trim().min(1).max(120),
   action: z.string().trim().min(1).max(140),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const badgeBlockSchema = z.object({
   kind: z.literal('badge'),
   text: z.string().trim().min(1).max(60),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const dividerBlockSchema = z.object({
   kind: z.literal('divider'),
-  ...blockBaseShape,
+  ...layerBaseShape,
 });
 
 export const imageBlockSchema = z.object({
@@ -160,11 +186,17 @@ export const imageBlockSchema = z.object({
   assetId: z.string().trim().min(1).max(80),
   caption: z.string().trim().min(1).max(120).optional(),
   display: z.enum(['card', 'stack', 'strip']).optional(),
-  focalPoint: z.enum(['center', 'top', 'bottom']).optional(),
-  ...blockBaseShape,
+  focalPoint: focalPointSchema.optional(),
+  ...layerBaseShape,
 });
 
-export const sceneBlockSchema = z.discriminatedUnion('kind', [
+export const subtitleLayerSchema = z.object({
+  kind: z.literal('subtitle'),
+  text: z.string().trim().min(1).max(120),
+  ...layerBaseShape,
+});
+
+export const sceneLayerSchema = z.discriminatedUnion('kind', [
   headingBlockSchema,
   bodyBlockSchema,
   listBlockSchema,
@@ -174,7 +206,11 @@ export const sceneBlockSchema = z.discriminatedUnion('kind', [
   badgeBlockSchema,
   dividerBlockSchema,
   imageBlockSchema,
+  subtitleLayerSchema,
 ]);
+
+// Обратная совместимость: sceneBlockSchema = sceneLayerSchema
+export const sceneBlockSchema = sceneLayerSchema;
 
 export const compositionSceneSchema = z.object({
   type: z.literal('composition'),
@@ -184,7 +220,7 @@ export const compositionSceneSchema = z.object({
   accentColor: z.string().regex(HEX_COLOR_PATTERN),
   align: sceneAlignSchema,
   media: sceneMediaSchema.optional(),
-  blocks: z.array(sceneBlockSchema).min(1).max(16),
+  layers: z.array(sceneLayerSchema).min(1).max(16),
 });
 
 export const videoSceneSchema = z.discriminatedUnion('type', [compositionSceneSchema]);
@@ -211,7 +247,9 @@ export type CtaBlock = z.infer<typeof ctaBlockSchema>;
 export type BadgeBlock = z.infer<typeof badgeBlockSchema>;
 export type DividerBlock = z.infer<typeof dividerBlockSchema>;
 export type ImageBlock = z.infer<typeof imageBlockSchema>;
-export type SceneBlock = z.infer<typeof sceneBlockSchema>;
+export type SubtitleLayer = z.infer<typeof subtitleLayerSchema>;
+export type SceneLayer = z.infer<typeof sceneLayerSchema>;
+export type SceneBlock = SceneLayer;
 export type CompositionScene = z.infer<typeof compositionSceneSchema>;
 export type VideoScene = z.infer<typeof videoSceneSchema>;
 export type VideoSpec = z.infer<typeof videoSpecSchema>;
@@ -236,6 +274,8 @@ export default {
   badgeBlockSchema,
   dividerBlockSchema,
   imageBlockSchema,
+  subtitleLayerSchema,
+  sceneLayerSchema,
   sceneBlockSchema,
   compositionSceneSchema,
   videoSceneSchema,

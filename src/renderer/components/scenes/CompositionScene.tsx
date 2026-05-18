@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react';
-import { Img, staticFile } from 'remotion';
+import { AbsoluteFill, Img, staticFile } from 'remotion';
 import type {
   CompositionScene as CompositionSceneData,
-  SceneBlock,
+  SceneLayer,
   VideoAsset,
 } from '../../../domain/video-schema';
+import { AnimatedLayer } from '../AnimatedLayer';
 import { SceneFrame } from './SceneFrame';
 
 const resolveTextAlign = (align: CompositionSceneData['align']): CSSProperties['textAlign'] => {
@@ -40,14 +41,10 @@ const getObjectFit = (ratio: number): 'cover' | 'contain' =>
   ratio >= 0.75 && ratio <= 1.35 ? 'contain' : 'cover';
 
 const BlockRenderer: React.FC<{
-  block: SceneBlock;
+  block: SceneLayer;
   scene: CompositionSceneData;
   assetsById: Map<string, VideoAsset>;
-}> = ({
-  block,
-  scene,
-  assetsById,
-}) => {
+}> = ({ block, scene, assetsById }) => {
   const align = block.align ?? scene.align;
   const textAlign = resolveTextAlign(align);
   const color = block.color ?? scene.textColor;
@@ -278,7 +275,15 @@ const BlockRenderer: React.FC<{
       const isNearSquare = aspectRatio >= 0.75 && aspectRatio <= 1.35;
       const fit = block.display === 'strip' ? 'cover' : getObjectFit(aspectRatio);
       const height =
-        block.display === 'strip' ? 210 : block.display === 'stack' ? 280 : isPortrait ? 440 : isNearSquare ? 360 : 300;
+        block.display === 'strip'
+          ? 210
+          : block.display === 'stack'
+            ? 280
+            : isPortrait
+              ? 440
+              : isNearSquare
+                ? 360
+                : 300;
 
       return (
         <div
@@ -332,10 +337,33 @@ const BlockRenderer: React.FC<{
         </div>
       );
     }
+    // subtitle is handled separately as an AbsoluteFill overlay
     default:
       return null;
   }
 };
+
+const SubtitleRenderer: React.FC<{
+  text: string;
+  color: string;
+}> = ({ text, color }) => (
+  <div
+    style={{
+      padding: '10px 20px',
+      borderRadius: 10,
+      backgroundColor: 'rgba(0, 0, 0, 0.72)',
+      color,
+      fontSize: 36,
+      fontWeight: 800,
+      lineHeight: 1.2,
+      textAlign: 'center',
+      maxWidth: 900,
+      backdropFilter: 'blur(4px)',
+    }}
+  >
+    {text}
+  </div>
+);
 
 export const CompositionScene: React.FC<{
   scene: CompositionSceneData;
@@ -347,34 +375,69 @@ export const CompositionScene: React.FC<{
     scene.align === 'center' ? 'center' : scene.align === 'right' ? 'flex-end' : 'flex-start';
   const assetsById = new Map(assets.map((item) => [item.id, item]));
 
+  const regularLayers = scene.layers.filter((l) => l.kind !== 'subtitle');
+  const subtitleLayers = scene.layers.filter((l) => l.kind === 'subtitle');
+
   return (
-    <SceneFrame
-      scene={scene}
-      asset={asset}
-      contentStyle={{
-        justifyContent,
-        alignItems,
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: scene.media?.mode === 'side' ? 520 : 900,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 24,
-          fontFamily: 'Georgia, serif',
+    <>
+      <SceneFrame
+        scene={scene}
+        asset={asset}
+        contentStyle={{
+          justifyContent,
+          alignItems,
         }}
       >
-        {scene.blocks.map((block, index) => (
-          <BlockRenderer
-            key={`${block.kind}-${index}`}
-            block={block}
-            scene={scene}
-            assetsById={assetsById}
-          />
-        ))}
-      </div>
-    </SceneFrame>
+        <div
+          style={{
+            width: '100%',
+            maxWidth: scene.media?.mode === 'side' ? 520 : 900,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 24,
+            fontFamily: 'Georgia, serif',
+          }}
+        >
+          {regularLayers.map((layer, index) => (
+            <AnimatedLayer
+              key={`${layer.kind}-${index}`}
+              layer={layer}
+              sceneDuration={scene.duration}
+            >
+              <BlockRenderer block={layer} scene={scene} assetsById={assetsById} />
+            </AnimatedLayer>
+          ))}
+        </div>
+      </SceneFrame>
+
+      {subtitleLayers.length > 0 && (
+        <AbsoluteFill
+          style={{
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            padding: '0 72px 100px',
+            flexDirection: 'column',
+            gap: 8,
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        >
+          {subtitleLayers.map((layer, index) =>
+            layer.kind === 'subtitle' ? (
+              <AnimatedLayer
+                key={`subtitle-${index}`}
+                layer={layer}
+                sceneDuration={scene.duration}
+              >
+                <SubtitleRenderer
+                  text={layer.text}
+                  color={layer.color ?? scene.textColor}
+                />
+              </AnimatedLayer>
+            ) : null,
+          )}
+        </AbsoluteFill>
+      )}
+    </>
   );
 };

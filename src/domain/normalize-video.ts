@@ -10,7 +10,7 @@ import {
   type RawBlock,
   type RawScene,
   type RawVideoSpec,
-  type SceneBlock,
+  type SceneLayer,
   type SceneMedia,
   type VideoAsset,
   type VideoConfig,
@@ -113,6 +113,58 @@ const normalizeAlign = (
   return value === 'left' || value === 'center' || value === 'right' ? value : fallback;
 };
 
+const normalizeEnterTransition = (
+  value: unknown,
+): SceneLayer['enterTransition'] => {
+  if (
+    value === 'fade' ||
+    value === 'slideUp' ||
+    value === 'slideLeft' ||
+    value === 'scale' ||
+    value === 'none'
+  ) {
+    return value;
+  }
+
+  return undefined;
+};
+
+const normalizeExitTransition = (
+  value: unknown,
+): SceneLayer['exitTransition'] => {
+  if (value === 'fade' || value === 'slideDown' || value === 'scale' || value === 'none') {
+    return value;
+  }
+
+  return undefined;
+};
+
+const normalizeLayerTiming = (
+  block: RawBlock,
+  sceneDuration: number,
+): Pick<SceneLayer, 'enterAt' | 'exitAt' | 'opacity' | 'enterTransition' | 'exitTransition'> => {
+  const enterAt = getNumber(block.enterAt);
+  const exitAt = getNumber(block.exitAt);
+  const opacity = getNumber(block.opacity);
+
+  return {
+    enterAt:
+      enterAt !== undefined && Number.isInteger(enterAt) && enterAt >= 0 && enterAt < sceneDuration
+        ? enterAt
+        : undefined,
+    exitAt:
+      exitAt !== undefined && Number.isInteger(exitAt) && exitAt > 0 && exitAt <= sceneDuration
+        ? exitAt
+        : undefined,
+    opacity:
+      opacity !== undefined && !Number.isNaN(opacity)
+        ? Math.min(1, Math.max(0, opacity))
+        : undefined,
+    enterTransition: normalizeEnterTransition(block.enterTransition),
+    exitTransition: normalizeExitTransition(block.exitTransition),
+  };
+};
+
 const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
   if (!assets?.length) {
     return [];
@@ -133,28 +185,82 @@ const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
 
     seenIds.add(id);
 
-    return {
+    const type = asset.type === 'video' ? 'video' : 'image';
+
+    const base = {
       id,
-      type: 'image',
+      type,
       src,
-      alt: normalizeOptionalText(asset.alt, `Image asset ${id}`),
+      alt: normalizeOptionalText(asset.alt, `${type === 'video' ? 'Video' : 'Image'} asset ${id}`),
       width: Math.max(1, Math.min(12000, asset.width ?? 1080)),
       height: Math.max(1, Math.min(12000, asset.height ?? 1080)),
-    };
+    } as const;
+
+    if (type === 'video') {
+      const durationSeconds =
+        typeof asset.durationSeconds === 'number' && asset.durationSeconds > 0
+          ? asset.durationSeconds
+          : undefined;
+      const fps =
+        typeof asset.fps === 'number' && asset.fps > 0 ? asset.fps : undefined;
+
+      return { ...base, type: 'video' as const, durationSeconds, fps };
+    }
+
+    return { ...base, type: 'image' as const };
   });
 };
 
-const normalizeSceneMedia = (media: RawScene['media']): SceneMedia | undefined => {
+const normalizeSceneMedia = (
+  media: RawScene['media'],
+  assets: VideoAsset[],
+): SceneMedia | undefined => {
   if (!media) {
     return undefined;
   }
 
+  const assetId = normalizeRequiredText(
+    media.assetId,
+    'Scene media must reference a non-empty assetId.',
+  );
+
+  const focalPoint =
+    media.focalPoint === 'center' ||
+    media.focalPoint === 'top' ||
+    media.focalPoint === 'bottom'
+      ? media.focalPoint
+      : undefined;
+
+  const videoAsset = assets.find((a) => a.id === assetId && a.type === 'video');
+
+  let trimStart: number | undefined;
+  let trimEnd: number | undefined;
+
+  if (videoAsset) {
+    const rawStart = getNumber(media.trimStart);
+    const rawEnd = getNumber(media.trimEnd);
+    const maxDuration = videoAsset.durationSeconds ?? Infinity;
+
+    trimStart =
+      rawStart !== undefined && rawStart >= 0 && rawStart < maxDuration ? rawStart : undefined;
+    trimEnd =
+      rawEnd !== undefined &&
+      rawEnd > (trimStart ?? 0) &&
+      rawEnd <= maxDuration
+        ? rawEnd
+        : undefined;
+  }
+
   return {
-    assetId: normalizeRequiredText(media.assetId, 'Scene media must reference a non-empty assetId.'),
+    assetId,
     mode: media.mode ?? DEFAULT_SCENE_MEDIA.mode,
-    position: media.mode === 'side' ? media.position ?? DEFAULT_SCENE_MEDIA.position : media.position,
+    position:
+      media.mode === 'side' ? media.position ?? DEFAULT_SCENE_MEDIA.position : media.position,
     overlayColor: normalizeColor(media.overlayColor, DEFAULT_SCENE_MEDIA.overlayColor),
     overlayOpacity: normalizeOpacity(media.overlayOpacity, DEFAULT_SCENE_MEDIA.overlayOpacity),
+    focalPoint,
+    trimStart,
+    trimEnd,
   };
 };
 
@@ -244,7 +350,12 @@ const splitCtaText = (value: string | undefined): { title?: string; action?: str
   };
 };
 
-const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index: number): SceneBlock[] => {
+const normalizeLayers = (
+  blocks: RawBlock[] | undefined,
+  scene: RawScene,
+  index: number,
+  sceneDuration: number,
+): SceneLayer[] => {
   const sceneAlign = normalizeAlign(scene.align, DEFAULT_COMPOSITION_SCENE.align);
   const sceneTextColor = normalizeColor(getString(scene.textColor), DEFAULT_COMPOSITION_SCENE.textColor);
   const sceneAccentColor = normalizeColor(
@@ -257,6 +368,8 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
   }
 
   return blocks.map((block, blockIndex) => {
+    const timing = normalizeLayerTiming(block, sceneDuration);
+
     switch (block.kind) {
       case 'heading':
         return {
@@ -272,6 +385,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       case 'body':
         return {
@@ -283,6 +397,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       case 'list': {
         const items = getStringArray(block.items)
@@ -303,6 +418,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       }
       case 'stat': {
@@ -325,6 +441,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       }
       case 'quote':
@@ -338,6 +455,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       case 'cta': {
         const fallback = splitCtaText(getString(block.text));
@@ -354,6 +472,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
 
         return normalized;
@@ -368,6 +487,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       case 'divider':
         return {
@@ -375,6 +495,7 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       case 'image':
         return {
@@ -397,6 +518,19 @@ const normalizeBlocks = (blocks: RawBlock[] | undefined, scene: RawScene, index:
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
+        };
+      case 'subtitle':
+        return {
+          kind: 'subtitle',
+          text: normalizeRequiredText(
+            getString(block.text),
+            `Scene ${index + 1}, block ${blockIndex + 1} must contain subtitle text.`,
+          ),
+          align: normalizeBlockAlign(block, sceneAlign),
+          color: buildTextBlockColor(block, scene, sceneTextColor),
+          accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          ...timing,
         };
       default:
         throw new Error(
@@ -434,16 +568,41 @@ const legacySceneToBlocks = (scene: RawScene): RawBlock[] => {
           text: getString(scene.text),
         },
       ];
-    case 'composition':
-      return scene.blocks ?? [];
     default:
-      return scene.blocks ?? [];
+      // prefer layers (new), fall back to blocks (legacy)
+      return scene.layers ?? scene.blocks ?? [];
   }
 };
 
-const normalizeCompositionScene = (scene: RawScene, index: number): CompositionScene => {
-  const duration = getNumber(scene.duration) ?? 0;
+const normalizeCompositionScene = (
+  scene: RawScene,
+  index: number,
+  assets: VideoAsset[],
+  videoFps: number,
+): CompositionScene => {
+  // Определяем duration: явное значение или авто из video trim
+  let duration = getNumber(scene.duration) ?? 0;
+
+  if (!duration && scene.media) {
+    const mediaAsset = assets.find((a) => a.id === scene.media?.assetId && a.type === 'video');
+    if (mediaAsset) {
+      const trimStart = getNumber(scene.media.trimStart) ?? 0;
+      const trimEnd =
+        getNumber(scene.media.trimEnd) ?? mediaAsset.durationSeconds ?? 0;
+      const seconds = trimEnd - trimStart;
+      if (seconds > 0) {
+        duration = Math.round(seconds * (mediaAsset.fps ?? videoFps));
+      }
+    }
+  }
+
   assertDuration(duration, index);
+
+  // Нормализуем media с учётом ассетов для trim-валидации
+  const media = normalizeSceneMedia(scene.media, assets);
+
+  // Предпочитаем layers (новый формат), с fallback на blocks (старый)
+  const rawLayers = scene.layers?.length ? scene.layers : legacySceneToBlocks(scene);
 
   return {
     type: 'composition',
@@ -455,13 +614,18 @@ const normalizeCompositionScene = (scene: RawScene, index: number): CompositionS
     textColor: normalizeColor(getString(scene.textColor), DEFAULT_COMPOSITION_SCENE.textColor),
     accentColor: normalizeColor(getString(scene.accentColor), DEFAULT_COMPOSITION_SCENE.accentColor),
     align: normalizeAlign(scene.align, DEFAULT_COMPOSITION_SCENE.align),
-    media: normalizeSceneMedia(scene.media),
-    blocks: normalizeBlocks(scene.blocks ?? legacySceneToBlocks(scene), scene, index),
+    media,
+    layers: normalizeLayers(rawLayers, scene, index, duration),
   };
 };
 
-const normalizeScene = (scene: RawScene, index: number): VideoScene => {
-  return normalizeCompositionScene(scene, index);
+const normalizeScene = (
+  scene: RawScene,
+  index: number,
+  assets: VideoAsset[],
+  videoFps: number,
+): VideoScene => {
+  return normalizeCompositionScene(scene, index, assets, videoFps);
 };
 
 const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): void => {
@@ -472,10 +636,10 @@ const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): voi
       throw new Error(`Scene ${index + 1} references unknown assetId "${scene.media.assetId}".`);
     }
 
-    scene.blocks.forEach((block, blockIndex) => {
-      if (block.kind === 'image' && !assetIds.has(block.assetId)) {
+    scene.layers.forEach((layer, layerIndex) => {
+      if (layer.kind === 'image' && !assetIds.has(layer.assetId)) {
         throw new Error(
-          `Scene ${index + 1}, block ${blockIndex + 1} references unknown assetId "${block.assetId}".`,
+          `Scene ${index + 1}, layer ${layerIndex + 1} references unknown assetId "${layer.assetId}".`,
         );
       }
     });
@@ -485,7 +649,10 @@ const assertSceneAssetsExist = (assets: VideoAsset[], scenes: VideoScene[]): voi
 export const normalizeVideoSpec = (input: unknown): VideoSpec => {
   const parsed = rawVideoSpecSchema.parse(input);
   const assets = normalizeAssets(parsed.assets);
-  const scenes = parsed.scenes.map((scene, index) => normalizeScene(scene, index));
+  const videoFps = parsed.videoConfig?.fps ?? DEFAULT_VIDEO_CONFIG.fps;
+  const scenes = parsed.scenes.map((scene, index) =>
+    normalizeScene(scene, index, assets, videoFps),
+  );
 
   assertSceneAssetsExist(assets, scenes);
 
