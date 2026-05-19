@@ -2,8 +2,8 @@ import type { CSSProperties } from 'react';
 import { AbsoluteFill, Img, staticFile } from 'remotion';
 import type {
   CompositionScene as CompositionSceneData,
+  ImageVideoAsset,
   SceneLayer,
-  VideoAsset,
 } from '../../../domain/video-schema';
 import { AnimatedLayer } from '../AnimatedLayer';
 import { SceneFrame } from './SceneFrame';
@@ -33,7 +33,7 @@ const resolveAssetSrc = (src: string): string => {
   return staticFile(src.replace(/^\/+/, ''));
 };
 
-const getAssetAspectRatio = (asset: VideoAsset): number => {
+const getAssetAspectRatio = (asset: ImageVideoAsset): number => {
   return asset.width / Math.max(asset.height, 1);
 };
 
@@ -43,7 +43,7 @@ const getObjectFit = (ratio: number): 'cover' | 'contain' =>
 const BlockRenderer: React.FC<{
   block: SceneLayer;
   scene: CompositionSceneData;
-  assetsById: Map<string, VideoAsset>;
+  assetsById: Map<string, ImageVideoAsset>;
 }> = ({ block, scene, assetsById }) => {
   const align = block.align ?? scene.align;
   const textAlign = resolveTextAlign(align);
@@ -367,8 +367,8 @@ const SubtitleRenderer: React.FC<{
 
 export const CompositionScene: React.FC<{
   scene: CompositionSceneData;
-  asset?: VideoAsset;
-  assets: VideoAsset[];
+  asset?: ImageVideoAsset;
+  assets: ImageVideoAsset[];
 }> = ({ scene, asset, assets }) => {
   const justifyContent = scene.align === 'center' ? 'center' : 'flex-start';
   const alignItems =

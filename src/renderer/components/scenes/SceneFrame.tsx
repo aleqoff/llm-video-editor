@@ -1,10 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { AbsoluteFill, Img, Video, staticFile, useVideoConfig } from 'remotion';
-import type { SceneMedia, VideoAsset, VideoScene } from '../../../domain/video-schema';
+import type { ImageVideoAsset, SceneMedia, VideoScene } from '../../../domain/video-schema';
 
 type SceneFrameProps = {
   scene: VideoScene;
-  asset?: VideoAsset;
+  asset?: ImageVideoAsset;
   children: ReactNode;
   contentStyle?: CSSProperties;
 };
@@ -17,7 +17,7 @@ const resolveAssetSrc = (src: string): string => {
   return staticFile(src.replace(/^\/+/, ''));
 };
 
-const getAssetAspectRatio = (asset: VideoAsset): number => {
+const getAssetAspectRatio = (asset: ImageVideoAsset): number => {
   return asset.width / Math.max(asset.height, 1);
 };
 
@@ -46,7 +46,7 @@ const resolveFocalPoint = (
 };
 
 const renderMedia = (
-  asset: VideoAsset,
+  asset: ImageVideoAsset,
   style: CSSProperties,
   trimStartFrames: number,
 ): ReactNode => {
@@ -56,7 +56,7 @@ const renderMedia = (
         src={resolveAssetSrc(asset.src)}
         startFrom={trimStartFrames}
         style={style}
-        muted
+        muted={!asset.hasAudio}
       />
     );
   }

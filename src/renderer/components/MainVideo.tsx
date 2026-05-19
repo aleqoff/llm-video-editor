@@ -1,5 +1,5 @@
-import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { VideoSpec } from '../../domain/video-schema';
+import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import type { AudioAsset, VideoSpec } from '../../domain/video-schema';
 import { SceneRenderer } from './SceneRenderer';
 
 // Frames dedicated to enter / exit animation per scene.
@@ -64,11 +64,49 @@ const AnimatedScene: React.FC<{
   );
 };
 
+const resolveAudioSrc = (src: string): string => {
+  if (/^(https?:)?\/\//.test(src)) return src;
+  return staticFile(src.replace(/^\/+/, ''));
+};
+
 export const MainVideo: React.FC<{ videoSpec: VideoSpec }> = ({ videoSpec }) => {
+  const { fps } = useVideoConfig();
   let currentStartFrame = 0;
+
+  const narrationAsset = videoSpec.narration?.assetId
+    ? (videoSpec.assets.find((a) => a.id === videoSpec.narration!.assetId) as AudioAsset | undefined)
+    : undefined;
+
+  const musicAsset = videoSpec.backgroundMusic?.assetId
+    ? (videoSpec.assets.find((a) => a.id === videoSpec.backgroundMusic!.assetId) as AudioAsset | undefined)
+    : undefined;
+
+  const musicVolume = (f: number): number => {
+    const bg = videoSpec.backgroundMusic!;
+    const kf = bg.volumeKeyframes;
+    if (!kf?.length) return bg.volume ?? 0.15;
+    return interpolate(
+      f,
+      kf.map((k) => k.frame),
+      kf.map((k) => k.volume),
+      { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+    );
+  };
 
   return (
     <AbsoluteFill style={{ backgroundColor: 'black' }}>
+      {narrationAsset && (
+        <Audio src={resolveAudioSrc(narrationAsset.src)} />
+      )}
+      {musicAsset && (
+        <Audio
+          src={resolveAudioSrc(musicAsset.src)}
+          startFrom={videoSpec.backgroundMusic!.startFrom
+            ? Math.round(videoSpec.backgroundMusic!.startFrom * fps)
+            : 0}
+          volume={(f) => musicVolume(f)}
+        />
+      )}
       {videoSpec.scenes.map((scene, index) => {
         const startFrame = currentStartFrame;
         currentStartFrame += scene.duration;

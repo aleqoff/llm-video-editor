@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import 'dotenv/config';
 import buildPrompt from './BuildPrompt.mjs';
+import { generateTTS } from './GenerateTTS.mjs';
 import saveAiResponseToFile from './ResponseToFile.mjs';
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -37,6 +38,9 @@ const createAssetParts = (asset) => {
 };
 
 const createAssetSummary = (asset) => {
+  if (asset.type === 'audio') {
+    return { id: asset.id, type: 'audio', src: asset.src };
+  }
   const base = {
     id: asset.id,
     type: asset.type ?? 'image',
@@ -48,8 +52,52 @@ const createAssetSummary = (asset) => {
   if (asset.type === 'video') {
     if (asset.durationSeconds != null) base.durationSeconds = asset.durationSeconds;
     if (asset.fps != null) base.fps = asset.fps;
+    if (asset.hasAudio != null) base.hasAudio = asset.hasAudio;
+    if (Array.isArray(asset.transcript) && asset.transcript.length > 0) {
+      base.transcript = asset.transcript;
+    }
   }
   return base;
+};
+
+const injectTranscriptSubtitles = (rawPayload, assetSummaries) => {
+  const fps = rawPayload.videoConfig?.fps ?? 30;
+  for (const scene of rawPayload.scenes ?? []) {
+    if (!scene.media?.assetId) continue;
+    const asset = assetSummaries.find((a) => a.id === scene.media.assetId);
+    if (!Array.isArray(asset?.transcript) || !asset.transcript.length) continue;
+
+    const trimStart = scene.media.trimStart ?? 0;
+    const trimEnd = scene.media.trimEnd ?? asset.durationSeconds ?? Infinity;
+    const segments = asset.transcript.filter(
+      (s) => s.endTime > trimStart && s.startTime < trimEnd,
+    );
+    if (!segments.length) continue;
+
+    const subtitleLayers = segments.map((s) => ({
+      kind: 'subtitle',
+      text: s.text.length > 120 ? s.text.slice(0, 117) + '...' : s.text,
+      enterAt: Math.max(0, Math.round((s.startTime - trimStart) * fps)),
+      exitAt: Math.round((Math.min(s.endTime, trimEnd) - trimStart) * fps),
+      enterTransition: 'fade',
+      exitTransition: 'fade',
+    }));
+
+    scene.layers = [
+      ...(scene.layers ?? []).filter((l) => l.kind !== 'subtitle'),
+      ...subtitleLayers,
+    ];
+
+    console.log(`💬 Субтитры: вставлено ${subtitleLayers.length} слоёв в сцену (trimStart=${trimStart}, trimEnd=${trimEnd})`);
+  }
+};
+
+const injectBackgroundMusic = (rawPayload, assetSummaries) => {
+  if (rawPayload.backgroundMusic) return;
+  const audioAsset = assetSummaries.find((a) => a.type === 'audio');
+  if (!audioAsset) return;
+  rawPayload.backgroundMusic = { assetId: audioAsset.id, volume: 0.15 };
+  console.log(`🎵 Фоновая музыка: автоматически добавлен ассет ${audioAsset.id}`);
 };
 
 const callWithFallback = async (contents) => {
@@ -77,21 +125,27 @@ const callWithFallback = async (contents) => {
   }
 };
 
-export const generateVideoSpecByTopic = async (topic, assets = []) => {
+export const generateVideoSpecByTopic = async (topic, assets = [], options = {}) => {
   const normalizedTopic = topic.trim();
 
   if (!normalizedTopic) {
     throw new Error('Video topic cannot be empty.');
   }
 
+  const { generateTTS: wantTTS = false } = options;
+
   logStep(1, 'Начата подготовка запроса к LLM.');
-  const imageCount = assets.filter((a) => a.type !== 'video').length;
+  const imageCount = assets.filter((a) => a.type === 'image').length;
   const videoCount = assets.filter((a) => a.type === 'video').length;
-  logStep(2, `Подготовлены данные темы, ${imageCount} image(s) и ${videoCount} video(s).`);
+  const audioCount = assets.filter((a) => a.type === 'audio').length;
+  logStep(2, `Подготовлены данные темы, ${imageCount} image(s), ${videoCount} video(s), ${audioCount} audio(s).`);
+
+  const assetSummaries = assets.map(createAssetSummary);
 
   const prompt = buildPrompt({
     topic: normalizedTopic,
-    assets: assets.map(createAssetSummary),
+    assets: assetSummaries,
+    requestTTS: wantTTS,
   });
 
   logStep(3, 'Собран prompt для модели.');
@@ -116,9 +170,33 @@ export const generateVideoSpecByTopic = async (topic, assets = []) => {
 
   logStep(6, 'Начат разбор JSON-ответа модели.');
   const rawPayload = JSON.parse(rawResponseText);
-  rawPayload.assets = assets.map(createAssetSummary);
+  rawPayload.assets = assetSummaries;
+
+  injectTranscriptSubtitles(rawPayload, assetSummaries);
+  injectBackgroundMusic(rawPayload, assetSummaries);
 
   logStep(7, 'Ответ модели разобран, assets синхронизированы с локальными файлами.');
+
+  if (wantTTS && rawPayload.narration?.text) {
+    const hasVoice = assetSummaries.some((a) => a.type === 'video' && a.hasAudio);
+    if (!hasVoice) {
+      logStep('7b', 'Генерируем TTS для нарратива...');
+      try {
+        const __dirname = new URL('.', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+        const audioDir = `${__dirname}/../../public/uploads/audio`.replace(/\//g, '/');
+        const voice = rawPayload.narration.voice ?? 'Aoede';
+        const audioAsset = await generateTTS(rawPayload.narration.text, voice, audioDir);
+        rawPayload.assets.push(audioAsset);
+        rawPayload.narration.assetId = audioAsset.id;
+        logStep('7c', `TTS создан: ${audioAsset.src}`);
+      } catch (err) {
+        console.warn('⚠️ TTS не удался, продолжаем без озвучки:', err.message);
+      }
+    } else {
+      logStep('7b', 'Видео имеет аудиодорожку — TTS пропускается.');
+    }
+  }
+
   logStep(8, `Сохраняем итоговый JSON для темы "${normalizedTopic}".`);
 
   const savedSpec = await saveAiResponseToFile(rawPayload);

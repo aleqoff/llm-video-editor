@@ -5,8 +5,11 @@ import {
   HEX_COLOR_PATTERN,
   rawVideoSpecSchema,
   videoSpecSchema,
+  type BackgroundMusic,
   type CompositionScene,
   type CtaBlock,
+  type ImageVideoAsset,
+  type Narration,
   type RawBlock,
   type RawScene,
   type RawVideoSpec,
@@ -16,6 +19,7 @@ import {
   type VideoConfig,
   type VideoScene,
   type VideoSpec,
+  type VolumeKeyframe,
 } from './video-schema.ts';
 
 const normalizeDimension = (value: number | undefined, fallback: number): number => {
@@ -185,30 +189,94 @@ const normalizeAssets = (assets: RawVideoSpec['assets']): VideoAsset[] => {
 
     seenIds.add(id);
 
+    // Audio asset — минимальная нормализация без width/height
+    if (asset.type === 'audio') {
+      const durationSeconds =
+        typeof asset.durationSeconds === 'number' && asset.durationSeconds > 0
+          ? asset.durationSeconds
+          : undefined;
+      return { id, type: 'audio' as const, src, durationSeconds };
+    }
+
     const type = asset.type === 'video' ? 'video' : 'image';
 
     const base = {
       id,
-      type,
       src,
       alt: normalizeOptionalText(asset.alt, `${type === 'video' ? 'Video' : 'Image'} asset ${id}`),
       width: Math.max(1, Math.min(12000, asset.width ?? 1080)),
       height: Math.max(1, Math.min(12000, asset.height ?? 1080)),
-    } as const;
+    };
 
     if (type === 'video') {
       const durationSeconds =
         typeof asset.durationSeconds === 'number' && asset.durationSeconds > 0
           ? asset.durationSeconds
           : undefined;
-      const fps =
-        typeof asset.fps === 'number' && asset.fps > 0 ? asset.fps : undefined;
+      const fps = typeof asset.fps === 'number' && asset.fps > 0 ? asset.fps : undefined;
+      const hasAudio = typeof asset.hasAudio === 'boolean' ? asset.hasAudio : undefined;
+      const transcript =
+        Array.isArray(asset.transcript) && asset.transcript.length > 0
+          ? asset.transcript
+          : undefined;
 
-      return { ...base, type: 'video' as const, durationSeconds, fps };
+      return { ...base, type: 'video' as const, durationSeconds, fps, hasAudio, transcript };
     }
 
     return { ...base, type: 'image' as const };
   });
+};
+
+const normalizeNarration = (raw: unknown): Narration | undefined => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const obj = raw as Record<string, unknown>;
+  const text = getString(obj.text)?.trim();
+  if (!text) return undefined;
+  return {
+    text,
+    assetId: getString(obj.assetId)?.trim() || undefined,
+    voice: getString(obj.voice)?.trim() || undefined,
+  };
+};
+
+const normalizeBackgroundMusic = (
+  raw: unknown,
+  assets: VideoAsset[],
+): BackgroundMusic | undefined => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const obj = raw as Record<string, unknown>;
+  const assetId = getString(obj.assetId)?.trim();
+  if (!assetId) return undefined;
+
+  const assetExists = assets.some((a) => a.id === assetId);
+  if (!assetExists) return undefined;
+
+  const volume = getNumber(obj.volume);
+  const startFrom = getNumber(obj.startFrom);
+
+  let volumeKeyframes: VolumeKeyframe[] | undefined;
+  if (Array.isArray(obj.volumeKeyframes) && obj.volumeKeyframes.length > 0) {
+    const parsed = obj.volumeKeyframes
+      .filter(
+        (kf): kf is { frame: number; volume: number } =>
+          typeof kf === 'object' &&
+          kf !== null &&
+          typeof (kf as Record<string, unknown>).frame === 'number' &&
+          typeof (kf as Record<string, unknown>).volume === 'number',
+      )
+      .map((kf) => ({
+        frame: Math.max(0, Math.round(kf.frame)),
+        volume: Math.min(1, Math.max(0, kf.volume)),
+      }));
+    if (parsed.length > 0) volumeKeyframes = parsed;
+  }
+
+  return {
+    assetId,
+    volume: volume !== undefined ? Math.min(1, Math.max(0, volume)) : 0.15,
+    volumeKeyframes,
+    startFrom: startFrom !== undefined && startFrom >= 0 ? startFrom : undefined,
+  };
 };
 
 const normalizeSceneMedia = (
@@ -584,7 +652,9 @@ const normalizeCompositionScene = (
   let duration = getNumber(scene.duration) ?? 0;
 
   if (!duration && scene.media) {
-    const mediaAsset = assets.find((a) => a.id === scene.media?.assetId && a.type === 'video');
+    const mediaAsset = assets.find(
+      (a): a is ImageVideoAsset => a.id === scene.media?.assetId && a.type === 'video',
+    );
     if (mediaAsset) {
       const trimStart = getNumber(scene.media.trimStart) ?? 0;
       const trimEnd =
@@ -656,11 +726,16 @@ export const normalizeVideoSpec = (input: unknown): VideoSpec => {
 
   assertSceneAssetsExist(assets, scenes);
 
+  const narration = normalizeNarration(parsed.narration);
+  const backgroundMusic = normalizeBackgroundMusic(parsed.backgroundMusic, assets);
+
   const normalized: VideoSpec = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     videoConfig: normalizeVideoConfig(parsed.videoConfig),
     assets,
     scenes,
+    ...(narration ? { narration } : {}),
+    ...(backgroundMusic ? { backgroundMusic } : {}),
   };
 
   return videoSpecSchema.parse(normalized);

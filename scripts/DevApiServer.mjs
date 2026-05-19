@@ -4,16 +4,20 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ffmpegStatic from 'ffmpeg-static';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import Ffmpeg from 'fluent-ffmpeg';
 import generateVideoSpecByTopic from './utils/GenerateVideoSpec.mjs';
+import { transcribeVideoAudio } from './utils/TranscribeAudio.mjs';
 
 Ffmpeg.setFfmpegPath(ffmpegStatic);
+Ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, '../public');
 const uploadsDir = path.join(publicDir, 'uploads');
 const thumbsDir = path.join(uploadsDir, 'thumbs');
+const audioDir = path.join(uploadsDir, 'audio');
 
 const webPort = Number(process.env.VIDEO_ENGINE_WEB_PORT ?? 3010);
 const previewPort = Number(process.env.REMOTION_PREVIEW_PORT ?? 3000);
@@ -22,10 +26,11 @@ const MAX_ASSETS = 7;
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+const ALLOWED_AUDIO_TYPES = new Set(['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/ogg']);
 
 // ─── ffprobe helper ──────────────────────────────────────────────────────────
 
-const probeVideo = (filePath) =>
+const probeMedia = (filePath) =>
   new Promise((resolve, reject) => {
     Ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) {
@@ -34,14 +39,21 @@ const probeVideo = (filePath) =>
       }
 
       const videoStream = metadata.streams.find((s) => s.codec_type === 'video');
+      const audioStream = metadata.streams.find((s) => s.codec_type === 'audio');
       const durationSeconds = parseFloat(metadata.format.duration) || 0;
       const fpsRaw = videoStream?.r_frame_rate ?? '30/1';
       const [num, den] = fpsRaw.split('/').map(Number);
       const fps = den ? Math.round(num / den) : 30;
       const width = videoStream?.width ?? 1080;
       const height = videoStream?.height ?? 1920;
+      const hasAudio = !!audioStream;
 
-      resolve({ durationSeconds, fps, width, height });
+      const streamSummary = metadata.streams
+        .map((s) => `${s.codec_type}(${s.codec_name ?? '?'})`)
+        .join(', ') || 'no streams';
+      console.log(`🔍 ffprobe ${path.basename(filePath)}: [${streamSummary}] → hasAudio=${hasAudio}`);
+
+      resolve({ durationSeconds, fps, width, height, hasAudio });
     });
   });
 
@@ -219,6 +231,31 @@ const html = `<!DOCTYPE html>
         object-fit: cover;
       }
 
+      .preview-card .audio-thumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 140px;
+        background: rgba(255, 209, 102, 0.08);
+        font-size: 40px;
+      }
+
+      .tts-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(3, 8, 16, 0.4);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .tts-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent-a); cursor: pointer; }
+      .tts-row .tts-label { font-size: 16px; color: var(--text); }
+
       .preview-meta {
         padding: 10px 12px 14px;
         font-size: 14px;
@@ -300,20 +337,25 @@ const html = `<!DOCTYPE html>
           </label>
 
           <label class="field">
-            <span class="label">Фото и видео для сцен</span>
+            <span class="label">Медиа для сцен</span>
             <div class="dropzone">
               <input
                 id="media"
                 name="media"
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/ogg"
                 multiple
               />
               <div class="hint">
-                Изображения: jpeg, png, webp, gif. Видео: mp4, mov, webm. Не больше ${MAX_ASSETS} файлов.
+                Фото: jpeg, png, webp, gif. Видео: mp4, mov, webm. Аудио (фоновая музыка): mp3, wav, m4a. До ${MAX_ASSETS} файлов.
               </div>
               <div id="preview-list" class="preview-list"></div>
             </div>
+          </label>
+
+          <label class="tts-row">
+            <input type="checkbox" id="tts-checkbox" />
+            <span class="tts-label">Озвучить нарративным голосом (Gemini TTS) — только если нет голоса в видео</span>
           </label>
 
           <div class="actions">
@@ -335,6 +377,7 @@ const html = `<!DOCTYPE html>
       const form = document.getElementById('generate-form');
       const topicField = document.getElementById('topic');
       const mediaField = document.getElementById('media');
+      const ttsCheckbox = document.getElementById('tts-checkbox');
       const previewList = document.getElementById('preview-list');
       const statusField = document.getElementById('status');
       const submitButton = document.getElementById('submit-button');
@@ -406,6 +449,7 @@ const html = `<!DOCTYPE html>
           card.className = 'preview-card';
 
           const isVideo = file.type.startsWith('video/');
+          const isAudio = file.type.startsWith('audio/');
 
           if (isVideo) {
             const video = document.createElement('video');
@@ -413,6 +457,11 @@ const html = `<!DOCTYPE html>
             video.muted = true;
             video.preload = 'metadata';
             card.appendChild(video);
+          } else if (isAudio) {
+            const thumb = document.createElement('div');
+            thumb.className = 'audio-thumb';
+            thumb.textContent = '🎵';
+            card.appendChild(thumb);
           } else {
             const image = document.createElement('img');
             image.src = URL.createObjectURL(file);
@@ -425,7 +474,7 @@ const html = `<!DOCTYPE html>
 
           const badge = document.createElement('span');
           badge.className = 'preview-type-badge';
-          badge.textContent = isVideo ? 'видео' : 'фото';
+          badge.textContent = isVideo ? 'видео' : isAudio ? 'аудио' : 'фото';
 
           const title = document.createElement('div');
           title.textContent = file.name;
@@ -435,6 +484,8 @@ const html = `<!DOCTYPE html>
             if (isVideo) {
               const info = await readVideoDimensions(file);
               details.textContent = info.width + ' x ' + info.height + ' · ' + info.durationSeconds.toFixed(1) + 'с';
+            } else if (isAudio) {
+              details.textContent = (file.size / 1024).toFixed(0) + ' KB';
             } else {
               const dims = await readImageDimensions(file);
               details.textContent = dims.width + ' x ' + dims.height + ' px';
@@ -481,6 +532,7 @@ const html = `<!DOCTYPE html>
           const mediaPayloads = await Promise.all(
             files.map(async (file) => {
               const isVideo = file.type.startsWith('video/');
+              const isAudio = file.type.startsWith('audio/');
               const base64Data = await fileToBase64(file);
 
               if (isVideo) {
@@ -503,7 +555,16 @@ const html = `<!DOCTYPE html>
                 };
               }
 
-              const [dims] = await Promise.all([readImageDimensions(file)]);
+              if (isAudio) {
+                return {
+                  name: file.name,
+                  mimeType: file.type || 'audio/mpeg',
+                  base64Data,
+                  isAudio: true,
+                };
+              }
+
+              const dims = await readImageDimensions(file);
               return {
                 name: file.name,
                 mimeType: file.type || 'image/jpeg',
@@ -518,7 +579,7 @@ const html = `<!DOCTYPE html>
           const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, images: mediaPayloads }),
+            body: JSON.stringify({ topic, images: mediaPayloads, tts: ttsCheckbox.checked }),
           });
 
           const payload = await response.json();
@@ -574,12 +635,18 @@ const getExtension = (mimeType) => {
     case 'video/mp4': return 'mp4';
     case 'video/quicktime': return 'mov';
     case 'video/webm': return 'webm';
+    case 'audio/wav': return 'wav';
+    case 'audio/mp4':
+    case 'audio/x-m4a':
+    case 'audio/m4a': return 'm4a';
+    case 'audio/mpeg': return 'mp3';
     default: return 'jpg';
   }
 };
 
 const ensureUploadsDir = () => {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(audioDir, { recursive: true });
 };
 
 // ─── saveMedia ────────────────────────────────────────────────────────────────
@@ -602,9 +669,10 @@ const saveMedia = async (files) => {
 
     const mimeType = typeof file.mimeType === 'string' ? file.mimeType.trim().toLowerCase() : '';
     const isVideo = file.isVideo === true || ALLOWED_VIDEO_TYPES.has(mimeType);
+    const isAudio = file.isAudio === true || ALLOWED_AUDIO_TYPES.has(mimeType);
     const isImage = ALLOWED_IMAGE_TYPES.has(mimeType);
 
-    if (!isVideo && !isImage) {
+    if (!isVideo && !isAudio && !isImage) {
       throw new Error(`Unsupported file type for item ${index + 1}: ${mimeType || 'unknown'}.`);
     }
 
@@ -618,31 +686,53 @@ const saveMedia = async (files) => {
     const safeName = sanitizeSegment(originalName.replace(/\.[^.]+$/, ''));
     const uniqueHash = crypto.randomBytes(6).toString('hex');
     const extension = getExtension(mimeType);
+
+    // Audio files go to uploads/audio/, everything else to uploads/
+    const saveDir = isAudio ? audioDir : uploadsDir;
     const fileName = `${Date.now()}-${safeName}-${uniqueHash}.${extension}`;
-    const absolutePath = path.join(uploadsDir, fileName);
+    const absolutePath = path.join(saveDir, fileName);
+    const relativeSrc = isAudio ? `uploads/audio/${fileName}` : `uploads/${fileName}`;
 
     fs.writeFileSync(absolutePath, Buffer.from(base64Data, 'base64'));
 
-    if (isVideo) {
+    if (isAudio) {
+      results.push({
+        id: `user-asset-${index + 1}`,
+        type: 'audio',
+        src: relativeSrc,
+        mimeType,
+      });
+    } else if (isVideo) {
       const clientWidth = typeof file.width === 'number' ? file.width : Number(file.width) || 1080;
       const clientHeight = typeof file.height === 'number' ? file.height : Number(file.height) || 1920;
       const clientDuration = typeof file.durationSeconds === 'number' ? file.durationSeconds : 0;
 
-      // ffprobe for accurate metadata
       let durationSeconds = clientDuration;
       let fps = 30;
       let width = clientWidth;
       let height = clientHeight;
+      let hasAudio = false;
+      let transcript = [];
 
       try {
-        const probe = await probeVideo(absolutePath);
+        const probe = await probeMedia(absolutePath);
         durationSeconds = probe.durationSeconds || durationSeconds;
         fps = probe.fps || fps;
         width = probe.width || width;
         height = probe.height || height;
-      } catch {}
+        hasAudio = probe.hasAudio;
+      } catch (err) {
+        console.warn(`⚠️ probeMedia не удалось для ${fileName}:`, err.message);
+      }
 
-      // 4 thumbnail frames for LLM context
+      if (hasAudio) {
+        try {
+          transcript = await transcribeVideoAudio(absolutePath, audioDir);
+        } catch (err) {
+          console.warn('⚠️ Транскрипция не удалась:', err.message);
+        }
+      }
+
       let thumbnails = [];
       try {
         const baseName = `${safeName}-${uniqueHash}`;
@@ -652,12 +742,14 @@ const saveMedia = async (files) => {
       results.push({
         id: `user-asset-${index + 1}`,
         type: 'video',
-        src: `uploads/${fileName}`,
+        src: relativeSrc,
         alt: originalName,
         width,
         height,
         durationSeconds,
         fps,
+        hasAudio,
+        ...(transcript.length > 0 ? { transcript } : {}),
         mimeType,
         thumbnails,
       });
@@ -672,7 +764,7 @@ const saveMedia = async (files) => {
       results.push({
         id: `user-asset-${index + 1}`,
         type: 'image',
-        src: `uploads/${fileName}`,
+        src: relativeSrc,
         alt: originalName,
         width,
         height,
@@ -708,8 +800,9 @@ const server = http.createServer(async (request, response) => {
       const payload = await readJsonBody(request);
       const topic = typeof payload.topic === 'string' ? payload.topic : '';
       const files = Array.isArray(payload.images) ? payload.images : [];
+      const generateTTS = payload.tts === true;
       const savedAssets = await saveMedia(files);
-      const videoSpec = await generateVideoSpecByTopic(topic, savedAssets);
+      const videoSpec = await generateVideoSpecByTopic(topic, savedAssets, { generateTTS });
 
       sendJson(response, 200, { ok: true, previewUrl, videoSpec });
     } catch (error) {

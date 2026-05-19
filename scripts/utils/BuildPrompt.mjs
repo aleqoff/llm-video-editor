@@ -5,23 +5,46 @@ const describeAssetsForPrompt = (assets) => {
 
   return assets
     .map((asset) => {
+      if (asset.type === 'audio') {
+        return `- assetId: "${asset.id}", type: "audio", src: "${asset.src}"`;
+      }
       if (asset.type === 'video') {
-        return `- assetId: "${asset.id}", type: "video", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}, durationSeconds: ${asset.durationSeconds ?? '?'}, fps: ${asset.fps ?? 30}`;
+        let line = `- assetId: "${asset.id}", type: "video", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}, durationSeconds: ${asset.durationSeconds ?? '?'}, fps: ${asset.fps ?? 30}, hasAudio: ${asset.hasAudio ?? false}`;
+        if (Array.isArray(asset.transcript) && asset.transcript.length > 0) {
+          const spokenText = asset.transcript.map((s) => s.text).join(' ');
+          line += `\n  Spoken content of this video: "${spokenText.replace(/"/g, "'")}"`;
+        }
+        return line;
       }
       return `- assetId: "${asset.id}", type: "image", src: "${asset.src}", alt: "${asset.alt}", width: ${asset.width}, height: ${asset.height}`;
     })
     .join('\n');
 };
 
-export const buildPrompt = ({ topic, assets = [] }) => `
+const hasVideoWithAudio = (assets) =>
+  assets.some((a) => a.type === 'video' && a.hasAudio === true);
+
+const hasVideoTranscript = (assets) =>
+  assets.some((a) => a.type === 'video' && Array.isArray(a.transcript) && a.transcript.length > 0);
+
+const narrationContract = `"narration": {
+    "text": "Full voiceover script — match ~130 words/min, business tone. Write the complete spoken narration that covers all scenes."
+  }`;
+
+export const buildPrompt = ({ topic, assets = [], requestTTS = false }) => {
+  const includeNarration = requestTTS && !hasVideoWithAudio(assets);
+  return buildPromptString({ topic, assets, includeNarration });
+};
+
+const buildPromptString = ({ topic, assets, includeNarration }) => `
 You are an AI creative director and video editor for short-form vertical business videos.
 Your job is to direct the video like a real editor: choose media for each scene, place content layers on top, control when each layer appears and disappears.
 
-Create a short-form vertical video plan for the topic: "${topic}".
+User directive: "${topic}".
 
 Return strictly valid JSON without markdown or explanations using this contract:
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "videoConfig": {
     "width": 1080,
     "height": 1920,
@@ -138,7 +161,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
         }
       ]
     }
-  ]
+  ]${includeNarration ? `,\n  ${narrationContract.trim()}` : ''}
 }
 
 Allowed scene type:
@@ -172,7 +195,14 @@ Scene media fields:
 
 Available user assets:
 ${describeAssetsForPrompt(assets)}
-
+${hasVideoTranscript(assets) ? `
+IMPORTANT — How to use the video content and the user's directive together:
+The "Spoken content" shown for a video asset is WHAT IS ACTUALLY SAID in that video. It describes what the video is about.
+The user's directive tells you WHAT KIND of video to make (selling, educational, motivational, etc.).
+Your job: apply the directive style to the video's actual subject matter.
+Example: directive="make a selling video" + spoken content="Hi, I run a small bakery and our bread is baked fresh every morning" → create a SELLING VIDEO ABOUT THAT BAKERY, not a video about how to make selling videos.
+Use the spoken content as the source of all headings, body text, list items, stats, and quotes. Do NOT invent a new topic.
+` : ''}
 Rules:
 - At least 3 scenes.
 - Every scene must be type "composition".
@@ -202,7 +232,9 @@ Rules:
 - You may use up to 7 user assets across the video.
 - Use "image" layers for inline visual cards when the asset is a photo, not only as background media.
 - Respect image orientation: portrait → side card or frame mode; wide → background or strip.
-- The result should feel like a professionally edited Reels or TikTok video: dynamic, punchy, and useful for a business audience.
+- The result should feel like a professionally edited Reels or TikTok video: dynamic, punchy, and relevant to the video's actual content.
+- If a video asset has hasAudio: true — its audio plays in the render automatically. Subtitle layers and background music are handled by the system; focus on making visual content match the spoken content.
+- Keep all assets from the input "assets" array unchanged in the output, including audio assets.
 `;
 
 export default buildPrompt;

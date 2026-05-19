@@ -40,13 +40,19 @@ const rawVideoConfigSchema = z
 
 const rawAssetSchema = z.object({
   id: z.string().trim().min(1),
-  type: z.enum(['image', 'video']).optional(),
+  type: z.enum(['image', 'video', 'audio']).optional(),
   src: z.string().trim().min(1),
   alt: z.string().trim().optional(),
   width: z.coerce.number().int().positive().optional(),
   height: z.coerce.number().int().positive().optional(),
   durationSeconds: z.coerce.number().positive().optional(),
   fps: z.coerce.number().positive().optional(),
+  hasAudio: z.boolean().optional(),
+  transcript: z.array(z.object({
+    text: z.string(),
+    startTime: z.number(),
+    endTime: z.number(),
+  })).optional(),
 });
 
 const rawSceneMediaSchema = z.object({
@@ -82,6 +88,8 @@ export const rawVideoSpecSchema = z.object({
   videoConfig: rawVideoConfigSchema,
   assets: z.array(rawAssetSchema).optional(),
   scenes: z.array(rawSceneSchema).min(1),
+  narration: z.object({}).passthrough().optional(),
+  backgroundMusic: z.object({}).passthrough().optional(),
 });
 
 export const videoConfigSchema = z.object({
@@ -90,7 +98,13 @@ export const videoConfigSchema = z.object({
   fps: z.number().int().min(1).max(120),
 });
 
-export const assetSchema = z.object({
+const transcriptSegmentSchema = z.object({
+  text: z.string(),
+  startTime: z.number().min(0),
+  endTime: z.number().min(0),
+});
+
+export const imageVideoAssetSchema = z.object({
   id: z.string().trim().min(1).max(80),
   type: z.enum(['image', 'video']),
   src: z.string().trim().min(1).max(2048),
@@ -99,7 +113,22 @@ export const assetSchema = z.object({
   height: z.number().int().min(1).max(12000),
   durationSeconds: z.number().positive().optional(),
   fps: z.number().positive().optional(),
+  hasAudio: z.boolean().optional(),
+  transcript: z.array(transcriptSegmentSchema).optional(),
 });
+
+export const audioAssetSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  type: z.literal('audio'),
+  src: z.string().trim().min(1).max(2048),
+  durationSeconds: z.number().positive().optional(),
+});
+
+export const assetSchema = z.discriminatedUnion('type', [
+  imageVideoAssetSchema.extend({ type: z.literal('image') }),
+  imageVideoAssetSchema.extend({ type: z.literal('video') }),
+  audioAssetSchema,
+]);
 
 export const sceneMediaSchema = z.object({
   assetId: z.string().trim().min(1).max(80),
@@ -192,7 +221,7 @@ export const imageBlockSchema = z.object({
 
 export const subtitleLayerSchema = z.object({
   kind: z.literal('subtitle'),
-  text: z.string().trim().min(1).max(120),
+  text: z.string().trim().min(1).max(300),
   ...layerBaseShape,
 });
 
@@ -225,11 +254,31 @@ export const compositionSceneSchema = z.object({
 
 export const videoSceneSchema = z.discriminatedUnion('type', [compositionSceneSchema]);
 
+export const narrationSchema = z.object({
+  text: z.string().trim().min(1),
+  assetId: z.string().trim().optional(),
+  voice: z.string().trim().optional(),
+});
+
+export const volumeKeyframeSchema = z.object({
+  frame: z.number().int().min(0),
+  volume: z.number().min(0).max(1),
+});
+
+export const backgroundMusicSchema = z.object({
+  assetId: z.string().trim().min(1).max(80),
+  volume: z.number().min(0).max(1).default(0.15),
+  volumeKeyframes: z.array(volumeKeyframeSchema).optional(),
+  startFrom: z.number().min(0).optional(),
+});
+
 export const videoSpecSchema = z.object({
-  schemaVersion: z.literal(3),
+  schemaVersion: z.union([z.literal(3), z.literal(4)]),
   videoConfig: videoConfigSchema,
   assets: z.array(assetSchema),
   scenes: z.array(videoSceneSchema).min(1),
+  narration: narrationSchema.optional(),
+  backgroundMusic: backgroundMusicSchema.optional(),
 });
 
 export type RawVideoSpec = z.infer<typeof rawVideoSpecSchema>;
@@ -237,6 +286,12 @@ export type RawScene = z.infer<typeof rawSceneSchema>;
 export type RawBlock = z.infer<typeof rawBlockSchema>;
 export type VideoConfig = z.infer<typeof videoConfigSchema>;
 export type VideoAsset = z.infer<typeof assetSchema>;
+export type ImageVideoAsset = z.infer<typeof imageVideoAssetSchema>;
+export type AudioAsset = z.infer<typeof audioAssetSchema>;
+export type TranscriptSegment = z.infer<typeof transcriptSegmentSchema>;
+export type Narration = z.infer<typeof narrationSchema>;
+export type VolumeKeyframe = z.infer<typeof volumeKeyframeSchema>;
+export type BackgroundMusic = z.infer<typeof backgroundMusicSchema>;
 export type SceneMedia = z.infer<typeof sceneMediaSchema>;
 export type HeadingBlock = z.infer<typeof headingBlockSchema>;
 export type BodyBlock = z.infer<typeof bodyBlockSchema>;
@@ -263,7 +318,12 @@ export default {
   rawSceneSchema,
   rawBlockSchema,
   videoConfigSchema,
+  imageVideoAssetSchema,
+  audioAssetSchema,
   assetSchema,
+  narrationSchema,
+  volumeKeyframeSchema,
+  backgroundMusicSchema,
   sceneMediaSchema,
   headingBlockSchema,
   bodyBlockSchema,
