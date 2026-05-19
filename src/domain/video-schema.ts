@@ -18,7 +18,7 @@ export const DEFAULT_SCENE_MEDIA = {
   mode: 'background',
   position: 'right',
   overlayColor: '#000000',
-  overlayOpacity: 0.38,
+  overlayOpacity: 0,
 } as const;
 
 export const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;

@@ -123,7 +123,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
         "mode": "side",
         "position": "right",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.10,
+        "overlayOpacity": 0,
         "focalPoint": "top"
       },
       "layers": [
@@ -209,6 +209,8 @@ Scene media fields:
 - "focalPoint": "center" | "top" | "bottom"
 - "trimStart": seconds from start of video to begin playing (only for video assets)
 - "trimEnd": seconds from start of video to stop playing (only for video assets)
+- "overlayColor": "#RRGGBB" — color of the tint layer on top of the media (default: "#000000")
+- "overlayOpacity": 0.0–0.95 — opacity of the tint layer (default: 0, no overlay)
 
 Available user assets:
 ${describeAssetsForPrompt(assets)}
