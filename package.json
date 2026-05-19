@@ -12,6 +12,7 @@
   "repository": {},
   "license": "UNLICENSED",
   "dependencies": {
+    "@google/genai": "^2.4.0",
     "@google/generative-ai": "^0.24.1",
     "@remotion/cli": "^4.0.0",
     "@remotion/zod-types": "^4.0.0",

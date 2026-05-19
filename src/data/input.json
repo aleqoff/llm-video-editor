@@ -8,237 +8,164 @@
   "assets": [
     {
       "id": "user-asset-1",
-      "type": "image",
-      "src": "uploads/1779139476071-2ss-1-e016210140d1.png",
-      "alt": "Безымянный2ss (1).png",
-      "width": 1273,
-      "height": 1389
-    },
-    {
-      "id": "user-asset-2",
-      "type": "image",
-      "src": "uploads/1779139476077-64197c6f-6dc4-44b8-8789-2189dc3ab7d2-6b4f0cad6f40.jpg",
-      "alt": "64197c6f-6dc4-44b8-8789-2189dc3ab7d2.jfif",
-      "width": 1871,
-      "height": 1003
-    },
-    {
-      "id": "user-asset-3",
-      "type": "image",
-      "src": "uploads/1779139476078-amiri-da5b20c843ef.png",
-      "alt": "amiri.png",
-      "width": 532,
-      "height": 850
+      "type": "video",
+      "src": "uploads/1779178641889-file-cacd18b38701.mp4",
+      "alt": "тест.mp4",
+      "width": 720,
+      "height": 1280,
+      "durationSeconds": 48.138167,
+      "fps": 30
     }
   ],
   "scenes": [
     {
       "type": "composition",
-      "duration": 60,
-      "backgroundColor": "#0A0A0A",
+      "duration": 120,
+      "backgroundColor": "#1A202C",
       "textColor": "#FFFFFF",
-      "accentColor": "#00E5FF",
+      "accentColor": "#F97316",
       "align": "center",
+      "media": {
+        "assetId": "user-asset-1",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.4,
+        "focalPoint": "center",
+        "trimStart": 0.5,
+        "trimEnd": 4.5
+      },
       "layers": [
         {
           "kind": "badge",
-          "text": "TOP 5",
+          "text": "Секрет Продаж",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
+          "accentColor": "#F97316",
           "enterAt": 0,
-          "enterTransition": "scale"
+          "enterTransition": "fade"
         },
         {
           "kind": "heading",
-          "text": "Прикольные персонажи для твоего бренда",
+          "text": "Ваши продажи падают?",
           "size": "xl",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
-          "enterAt": 10,
+          "accentColor": "#F97316",
+          "enterAt": 30,
           "enterTransition": "slideUp"
         },
         {
           "kind": "subtitle",
-          "text": "Лучшие маскоты 2024",
+          "text": "Время перемен!",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
-          "enterAt": 20,
-          "exitAt": 60,
-          "enterTransition": "fade"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 90,
-      "backgroundColor": "#121212",
-      "textColor": "#FFFFFF",
-      "accentColor": "#4CAF50",
-      "align": "right",
-      "media": {
-        "assetId": "user-asset-1",
-        "mode": "side",
-        "position": "left",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.38,
-        "focalPoint": "center"
-      },
-      "layers": [
-        {
-          "kind": "badge",
-          "text": "Персонаж #1",
-          "align": "right",
-          "color": "#FFFFFF",
-          "accentColor": "#4CAF50",
+          "accentColor": "#F97316",
           "enterAt": 0,
-          "enterTransition": "fade"
-        },
-        {
-          "kind": "heading",
-          "text": "Денежный Монстр",
-          "size": "lg",
-          "align": "right",
-          "color": "#FFFFFF",
-          "accentColor": "#4CAF50",
-          "enterAt": 12,
-          "enterTransition": "slideUp"
-        },
-        {
-          "kind": "body",
-          "text": "Идеально подходит для финансовых сервисов и банков.",
-          "align": "right",
-          "color": "#FFFFFF",
-          "accentColor": "#4CAF50",
-          "enterAt": 24,
-          "enterTransition": "fade"
+          "exitAt": 120,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
         }
       ]
     },
     {
       "type": "composition",
-      "duration": 90,
-      "backgroundColor": "#1A1A1A",
+      "duration": 180,
+      "backgroundColor": "#1F2937",
       "textColor": "#FFFFFF",
-      "accentColor": "#FFD600",
+      "accentColor": "#10B981",
       "align": "left",
       "media": {
-        "assetId": "user-asset-3",
-        "mode": "side",
-        "position": "right",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.38,
-        "focalPoint": "top"
-      },
-      "layers": [
-        {
-          "kind": "badge",
-          "text": "Персонаж #2",
-          "align": "left",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD600",
-          "enterAt": 0,
-          "enterTransition": "fade"
-        },
-        {
-          "kind": "heading",
-          "text": "Проводник Амири",
-          "size": "lg",
-          "align": "left",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD600",
-          "enterAt": 12,
-          "enterTransition": "slideUp"
-        },
-        {
-          "kind": "body",
-          "text": "Матрица судьбы и порядок в делах.",
-          "align": "left",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD600",
-          "enterAt": 24,
-          "enterTransition": "fade"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 90,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FF3D00",
-      "align": "center",
-      "media": {
-        "assetId": "user-asset-2",
+        "assetId": "user-asset-1",
         "mode": "background",
         "overlayColor": "#000000",
-        "overlayOpacity": 0.6,
-        "focalPoint": "center"
+        "overlayOpacity": 0.35,
+        "focalPoint": "center",
+        "trimStart": 7,
+        "trimEnd": 13
       },
       "layers": [
         {
           "kind": "heading",
-          "text": "Магистр Расчетов",
+          "text": "Как увеличить прибыль на 30%?",
           "size": "lg",
-          "align": "center",
+          "align": "left",
           "color": "#FFFFFF",
-          "accentColor": "#FF3D00",
-          "enterAt": 10,
-          "enterTransition": "scale"
-        },
-        {
-          "kind": "quote",
-          "text": "Цифры не врут, если их правильно считать.",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF3D00",
-          "enterAt": 25,
-          "enterTransition": "fade"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 100,
-      "backgroundColor": "#0F172A",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00FFC2",
-      "align": "center",
-      "layers": [
-        {
-          "kind": "heading",
-          "text": "Кто твой фаворит?",
-          "size": "xl",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00FFC2",
-          "enterAt": 10,
+          "accentColor": "#10B981",
+          "enterAt": 15,
           "enterTransition": "slideUp"
         },
         {
           "kind": "list",
           "items": [
-            "Денежный Монстр",
-            "Проводник Амири",
-            "Мастер Цифр"
+            "Новые стратегии",
+            "Эффективный маркетинг",
+            "Оптимизация воронки"
           ],
-          "align": "center",
+          "align": "left",
           "color": "#FFFFFF",
-          "accentColor": "#00FFC2",
-          "enterAt": 30,
+          "accentColor": "#10B981",
+          "enterAt": 60,
           "enterTransition": "fade"
         },
         {
-          "kind": "cta",
-          "title": "Создай своего героя",
-          "action": "Пиши в директ",
+          "kind": "subtitle",
+          "text": "Поддерживаем рост бизнеса",
+          "align": "left",
+          "color": "#FFFFFF",
+          "accentColor": "#10B981",
+          "enterAt": 0,
+          "exitAt": 180,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        }
+      ]
+    },
+    {
+      "type": "composition",
+      "duration": 120,
+      "backgroundColor": "#0F172A",
+      "textColor": "#FFFFFF",
+      "accentColor": "#FBBF24",
+      "align": "center",
+      "media": {
+        "assetId": "user-asset-1",
+        "mode": "background",
+        "overlayColor": "#000000",
+        "overlayOpacity": 0.45,
+        "focalPoint": "center",
+        "trimStart": 15,
+        "trimEnd": 19
+      },
+      "layers": [
+        {
+          "kind": "quote",
+          "text": "Мы знаем, как это сделать!",
           "align": "center",
           "color": "#FFFFFF",
-          "accentColor": "#00FFC2",
-          "enterAt": 60,
+          "accentColor": "#FBBF24",
+          "enterAt": 30,
           "enterTransition": "scale"
+        },
+        {
+          "kind": "cta",
+          "title": "Получи бесплатную консультацию",
+          "action": "Запишись сейчас",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FBBF24",
+          "enterAt": 90,
+          "enterTransition": "slideUp"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Твой бизнес достоин лучшего",
+          "align": "center",
+          "color": "#FFFFFF",
+          "accentColor": "#FBBF24",
+          "enterAt": 0,
+          "exitAt": 120,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
         }
       ]
     }

@@ -1,6 +1,6 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import 'dotenv/config';
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -9,7 +9,7 @@ if (!apiKey) {
   throw new Error('API key GEMINI_API_KEY was not found in .env');
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const ai = new GoogleGenAI({ apiKey });
 
 const getImageUrlFromArgs = () => {
   return process.argv.slice(2).join(' ').trim();
@@ -107,29 +107,28 @@ const downloadImage = async (imageUrl) => {
 };
 
 const describeImageByUrl = async (imageUrl) => {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-flash-latest',
-  });
-
   const { mimeType, data } = await downloadImage(imageUrl);
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType,
-        data,
+  const result = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType, data } },
+          {
+            text: [
+              'Describe this image in Russian.',
+              'Return a concise but informative description.',
+              'Mention the main subjects, setting, visible actions, mood, and notable objects.',
+            ].join(' '),
+          },
+        ],
       },
-    },
-    {
-      text: [
-        'Describe this image in Russian.',
-        'Return a concise but informative description.',
-        'Mention the main subjects, setting, visible actions, mood, and notable objects.',
-      ].join(' '),
-    },
-  ]);
+    ],
+  });
 
-  return result.response.text().trim();
+  return result.text.trim();
 };
 
 async function run() {
