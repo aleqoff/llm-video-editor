@@ -100,7 +100,8 @@ const html = `<!DOCTYPE html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Engine Studio</title>
+    <title>АвтоКом</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <style>
       :root {
         --bg: #08111f;
@@ -787,6 +788,18 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && (request.url === '/' || request.url.startsWith('/?'))) {
     sendHtml(response, html);
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/favicon.png') {
+    const faviconPath = path.join(publicDir, 'favicon.png');
+    if (fs.existsSync(faviconPath)) {
+      response.writeHead(200, { 'Content-Type': 'image/png' });
+      fs.createReadStream(faviconPath).pipe(response);
+    } else {
+      response.writeHead(404);
+      response.end();
+    }
     return;
   }
 
