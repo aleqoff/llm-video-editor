@@ -65,22 +65,43 @@ const injectTranscriptSubtitles = (rawPayload, assetSummaries) => {
   for (const scene of rawPayload.scenes ?? []) {
     if (!scene.media?.assetId) continue;
     const asset = assetSummaries.find((a) => a.id === scene.media.assetId);
-    if (!Array.isArray(asset?.transcript) || !asset.transcript.length) continue;
+    if (!asset) continue;
+    if (!Array.isArray(asset?.transcript) || !asset.transcript.length) {
+      if (asset.hasAudio) {
+        console.warn(`⚠️ Субтитры: ассет ${asset.id} имеет hasAudio=true, но транскрипт отсутствует — транскрипция не удалась при загрузке файла`);
+      }
+      continue;
+    }
 
     const trimStart = scene.media.trimStart ?? 0;
     const trimEnd = scene.media.trimEnd ?? asset.durationSeconds ?? Infinity;
     const segments = asset.transcript.filter(
       (s) => s.endTime > trimStart && s.startTime < trimEnd,
     );
-    if (!segments.length) continue;
+    if (!segments.length) {
+      console.log(`ℹ️ Субтитры: нет сегментов для сцены в диапазоне [${trimStart}–${trimEnd}]`);
+      continue;
+    }
+
+    // Carry over subtitle style from the first LLM-generated subtitle layer (if any)
+    const styleTemplate = (() => {
+      const existing = (scene.layers ?? []).find((l) => l.kind === 'subtitle');
+      if (!existing) return {};
+      const { fontSize, background, backgroundOpacity, outline, position, color, accentColor } = existing;
+      return Object.fromEntries(
+        Object.entries({ fontSize, background, backgroundOpacity, outline, position, color, accentColor })
+          .filter(([, v]) => v !== undefined),
+      );
+    })();
 
     const subtitleLayers = segments.map((s) => ({
       kind: 'subtitle',
+      ...styleTemplate,
       text: s.text.length > 120 ? s.text.slice(0, 117) + '...' : s.text,
       enterAt: Math.max(0, Math.round((s.startTime - trimStart) * fps)),
       exitAt: Math.round((Math.min(s.endTime, trimEnd) - trimStart) * fps),
-      enterTransition: 'fade',
-      exitTransition: 'fade',
+      enterTransition: styleTemplate.enterTransition ?? 'fade',
+      exitTransition: styleTemplate.exitTransition ?? 'fade',
     }));
 
     scene.layers = [

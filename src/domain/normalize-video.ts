@@ -588,7 +588,14 @@ const normalizeLayers = (
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
           ...timing,
         };
-      case 'subtitle':
+      case 'subtitle': {
+        const subtitleFontSizes = ['sm', 'md', 'lg'] as const;
+        const subtitlePositions = ['top', 'middle', 'bottom'] as const;
+        const rawFontSize = getString(block.fontSize);
+        const rawPosition = getString(block.position);
+        const rawBg = getString(block.background);
+        const rawOutline = getString(block.outline);
+        const rawBgOpacity = getNumber(block.backgroundOpacity);
         return {
           kind: 'subtitle',
           text: normalizeRequiredText(
@@ -598,8 +605,20 @@ const normalizeLayers = (
           align: normalizeBlockAlign(block, sceneAlign),
           color: buildTextBlockColor(block, scene, sceneTextColor),
           accentColor: buildAccentColor(block, scene, sceneAccentColor),
+          fontSize: subtitleFontSizes.includes(rawFontSize as typeof subtitleFontSizes[number])
+            ? (rawFontSize as typeof subtitleFontSizes[number])
+            : undefined,
+          background: rawBg ? normalizeColor(rawBg, '') || undefined : undefined,
+          backgroundOpacity: rawBgOpacity !== undefined && !Number.isNaN(rawBgOpacity)
+            ? Math.min(1, Math.max(0, rawBgOpacity))
+            : undefined,
+          outline: rawOutline ? normalizeColor(rawOutline, '') || undefined : undefined,
+          position: subtitlePositions.includes(rawPosition as typeof subtitlePositions[number])
+            ? (rawPosition as typeof subtitlePositions[number])
+            : undefined,
           ...timing,
         };
+      }
       default:
         throw new Error(
           `Scene ${index + 1}, block ${blockIndex + 1} has unsupported kind "${block.kind ?? 'unknown'}".`,
@@ -674,8 +693,14 @@ const normalizeCompositionScene = (
   // Предпочитаем layers (новый формат), с fallback на blocks (старый)
   const rawLayers = scene.layers?.length ? scene.layers : legacySceneToBlocks(scene);
 
+  const sceneTransitions = ['slideUp', 'scale', 'slideLeft', 'none'] as const;
+  const rawTransition = getString(scene.transition);
+
   return {
     type: 'composition',
+    transition: sceneTransitions.includes(rawTransition as typeof sceneTransitions[number])
+      ? (rawTransition as typeof sceneTransitions[number])
+      : undefined,
     duration,
     backgroundColor: normalizeColor(
       getString(scene.backgroundColor) ?? getString(scene.color),

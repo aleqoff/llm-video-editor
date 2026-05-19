@@ -4,6 +4,7 @@ import type {
   CompositionScene as CompositionSceneData,
   ImageVideoAsset,
   SceneLayer,
+  SubtitleLayer,
 } from '../../../domain/video-schema';
 import { AnimatedLayer } from '../AnimatedLayer';
 import { SceneFrame } from './SceneFrame';
@@ -343,27 +344,50 @@ const BlockRenderer: React.FC<{
   }
 };
 
+const SUBTITLE_FONT_SIZE: Record<'sm' | 'md' | 'lg', number> = { sm: 26, md: 36, lg: 50 };
+
+const hexToRgb = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16),
+  ];
+};
+
 const SubtitleRenderer: React.FC<{
-  text: string;
-  color: string;
-}> = ({ text, color }) => (
-  <div
-    style={{
-      padding: '10px 20px',
-      borderRadius: 10,
-      backgroundColor: 'rgba(0, 0, 0, 0.72)',
-      color,
-      fontSize: 36,
-      fontWeight: 800,
-      lineHeight: 1.2,
-      textAlign: 'center',
-      maxWidth: 900,
-      backdropFilter: 'blur(4px)',
-    }}
-  >
-    {text}
-  </div>
-);
+  layer: SubtitleLayer;
+  sceneTextColor: string;
+}> = ({ layer, sceneTextColor }) => {
+  const fontSize = SUBTITLE_FONT_SIZE[layer.fontSize ?? 'md'];
+  const bgColor = layer.background ?? '#000000';
+  const bgOpacity = layer.backgroundOpacity ?? 0.72;
+  const [r, g, b] = hexToRgb(bgColor);
+  const textShadow = layer.outline
+    ? `0 0 4px ${layer.outline}, 0 0 4px ${layer.outline}, 0 0 4px ${layer.outline}`
+    : undefined;
+
+  return (
+    <div
+      style={{
+        padding: '10px 20px',
+        borderRadius: 10,
+        backgroundColor: `rgba(${r},${g},${b},${bgOpacity})`,
+        backdropFilter: bgOpacity > 0 ? 'blur(4px)' : undefined,
+        color: layer.color ?? sceneTextColor,
+        fontSize,
+        fontWeight: 800,
+        lineHeight: 1.2,
+        textAlign: 'center',
+        maxWidth: 900,
+        textShadow,
+      }}
+    >
+      {layer.text}
+    </div>
+  );
+};
 
 export const CompositionScene: React.FC<{
   scene: CompositionSceneData;
@@ -410,34 +434,49 @@ export const CompositionScene: React.FC<{
         </div>
       </SceneFrame>
 
-      {subtitleLayers.length > 0 && (
-        <AbsoluteFill
-          style={{
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            padding: '0 72px 100px',
-            flexDirection: 'column',
-            gap: 8,
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}
-        >
-          {subtitleLayers.map((layer, index) =>
-            layer.kind === 'subtitle' ? (
-              <AnimatedLayer
-                key={`subtitle-${index}`}
-                layer={layer}
-                sceneDuration={scene.duration}
-              >
-                <SubtitleRenderer
-                  text={layer.text}
-                  color={layer.color ?? scene.textColor}
-                />
-              </AnimatedLayer>
-            ) : null,
-          )}
-        </AbsoluteFill>
-      )}
+      {subtitleLayers.length > 0 && (() => {
+        const byPosition = {
+          top: subtitleLayers.filter((l) => l.kind === 'subtitle' && l.position === 'top'),
+          middle: subtitleLayers.filter((l) => l.kind === 'subtitle' && l.position === 'middle'),
+          bottom: subtitleLayers.filter((l) => l.kind === 'subtitle' && (!l.position || l.position === 'bottom')),
+        };
+        const positionStyles: Record<string, CSSProperties> = {
+          top: { justifyContent: 'flex-start', padding: '100px 72px 0' },
+          middle: { justifyContent: 'center', padding: '0 72px' },
+          bottom: { justifyContent: 'flex-end', padding: '0 72px 100px' },
+        };
+        return (
+          <>
+            {(['top', 'middle', 'bottom'] as const).map((pos) =>
+              byPosition[pos].length > 0 ? (
+                <AbsoluteFill
+                  key={pos}
+                  style={{
+                    ...positionStyles[pos],
+                    alignItems: 'center',
+                    flexDirection: 'column',
+                    gap: 8,
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                >
+                  {byPosition[pos].map((layer, index) =>
+                    layer.kind === 'subtitle' ? (
+                      <AnimatedLayer
+                        key={`subtitle-${pos}-${index}`}
+                        layer={layer}
+                        sceneDuration={scene.duration}
+                      >
+                        <SubtitleRenderer layer={layer} sceneTextColor={scene.textColor} />
+                      </AnimatedLayer>
+                    ) : null,
+                  )}
+                </AbsoluteFill>
+              ) : null,
+            )}
+          </>
+        );
+      })()}
     </>
   );
 };

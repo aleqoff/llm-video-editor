@@ -29,6 +29,9 @@ const sceneAlignSchema = z.enum(['left', 'center', 'right']);
 const focalPointSchema = z.enum(['center', 'top', 'bottom']);
 const enterTransitionSchema = z.enum(['fade', 'slideUp', 'slideLeft', 'scale', 'none']);
 const exitTransitionSchema = z.enum(['fade', 'slideDown', 'scale', 'none']);
+const sceneTransitionSchema = z.enum(['slideUp', 'scale', 'slideLeft', 'none']);
+const subtitleFontSizeSchema = z.enum(['sm', 'md', 'lg']);
+const subtitlePositionSchema = z.enum(['top', 'middle', 'bottom']);
 
 const rawVideoConfigSchema = z
   .object({
@@ -222,6 +225,11 @@ export const imageBlockSchema = z.object({
 export const subtitleLayerSchema = z.object({
   kind: z.literal('subtitle'),
   text: z.string().trim().min(1).max(300),
+  fontSize: subtitleFontSizeSchema.optional(),
+  background: z.string().regex(HEX_COLOR_PATTERN).optional(),
+  backgroundOpacity: z.number().min(0).max(1).optional(),
+  outline: z.string().regex(HEX_COLOR_PATTERN).optional(),
+  position: subtitlePositionSchema.optional(),
   ...layerBaseShape,
 });
 
@@ -243,13 +251,14 @@ export const sceneBlockSchema = sceneLayerSchema;
 
 export const compositionSceneSchema = z.object({
   type: z.literal('composition'),
+  transition: sceneTransitionSchema.optional(),
   duration: z.number().int().min(1).max(3600),
   backgroundColor: z.string().regex(HEX_COLOR_PATTERN),
   textColor: z.string().regex(HEX_COLOR_PATTERN),
   accentColor: z.string().regex(HEX_COLOR_PATTERN),
   align: sceneAlignSchema,
   media: sceneMediaSchema.optional(),
-  layers: z.array(sceneLayerSchema).min(1).max(16),
+  layers: z.array(sceneLayerSchema).max(16),
 });
 
 export const videoSceneSchema = z.discriminatedUnion('type', [compositionSceneSchema]);

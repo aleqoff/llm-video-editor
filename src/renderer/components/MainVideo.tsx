@@ -7,7 +7,7 @@ import { SceneRenderer } from './SceneRenderer';
 const TRANSITION_IN = 10;
 const TRANSITION_OUT = 7;
 
-type TransitionKind = 'slideUp' | 'scale' | 'slideLeft';
+type TransitionKind = 'slideUp' | 'scale' | 'slideLeft' | 'none';
 
 // Cycle through variants so consecutive scenes feel different.
 const TRANSITION_CYCLE: TransitionKind[] = ['slideUp', 'scale', 'slideLeft'];
@@ -39,6 +39,10 @@ const AnimatedScene: React.FC<{
     [1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
+
+  if (transition === 'none') {
+    return <AbsoluteFill>{children}</AbsoluteFill>;
+  }
 
   const enterClamped = Math.min(1, enter);
   const opacity = enterClamped * exitOpacity;
@@ -111,7 +115,7 @@ export const MainVideo: React.FC<{ videoSpec: VideoSpec }> = ({ videoSpec }) => 
         const startFrame = currentStartFrame;
         currentStartFrame += scene.duration;
 
-        const transition = TRANSITION_CYCLE[index % TRANSITION_CYCLE.length];
+        const transition: TransitionKind = scene.transition ?? TRANSITION_CYCLE[index % TRANSITION_CYCLE.length];
 
         return (
           <Sequence

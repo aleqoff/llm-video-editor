@@ -63,6 +63,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
   "scenes": [
     {
       "type": "composition",
+      "transition": "slideUp",
       "duration": 90,
       "backgroundColor": "#101820",
       "textColor": "#FFFFFF",
@@ -98,6 +99,10 @@ Return strictly valid JSON without markdown or explanations using this contract:
         {
           "kind": "subtitle",
           "text": "Small business in 2026",
+          "fontSize": "md",
+          "background": "#000000",
+          "backgroundOpacity": 0.72,
+          "position": "bottom",
           "enterAt": 0,
           "exitAt": 90,
           "enterTransition": "fade",
@@ -107,6 +112,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
     },
     {
       "type": "composition",
+      "transition": "none",
       "duration": 120,
       "backgroundColor": "#0F172A",
       "textColor": "#FFFFFF",
@@ -138,6 +144,7 @@ Return strictly valid JSON without markdown or explanations using this contract:
     },
     {
       "type": "composition",
+      "transition": "scale",
       "duration": 90,
       "backgroundColor": "#111827",
       "textColor": "#FFFFFF",
@@ -167,6 +174,9 @@ Return strictly valid JSON without markdown or explanations using this contract:
 Allowed scene type:
 - "composition"
 
+Scene transition field (optional):
+- "transition": "slideUp" | "scale" | "slideLeft" | "none" — entrance animation for this scene (default: "slideUp"). Use "none" for hard cuts between scenes.
+
 Allowed layer kinds:
 - "heading"
 - "body"
@@ -186,6 +196,13 @@ Layer timing fields (optional, integers in frames):
 - "enterTransition": "fade" | "slideUp" | "slideLeft" | "scale" | "none"
 - "exitTransition": "fade" | "slideDown" | "scale" | "none"
 
+Subtitle style fields (optional):
+- "fontSize": "sm" | "md" | "lg" — text size (default: "md", ~36px). Use "lg" for emphasis, "sm" for secondary captions.
+- "background": "#RRGGBB" — pill background color (default: "#000000")
+- "backgroundOpacity": 0.0–1.0 — background transparency (default: 0.72). Set to 0 to disable background.
+- "outline": "#RRGGBB" — text stroke color for readability on bright frames (optional)
+- "position": "top" | "middle" | "bottom" — vertical placement (default: "bottom")
+
 Scene media fields:
 - "mode": "background" | "frame" | "side"
 - "position": "left" | "right" (only when mode is "side")
@@ -203,11 +220,12 @@ Your job: apply the directive style to the video's actual subject matter.
 Example: directive="make a selling video" + spoken content="Hi, I run a small bakery and our bread is baked fresh every morning" → create a SELLING VIDEO ABOUT THAT BAKERY, not a video about how to make selling videos.
 Use the spoken content as the source of all headings, body text, list items, stats, and quotes. Do NOT invent a new topic.
 ` : ''}
-Rules:
-- At least 3 scenes.
+Guidelines:
+- Follow the user's directive strictly. If it restricts layer types (e.g. "only subtitles", "no text"), use only those types.
+- Use as many scenes as needed — no minimum or maximum.
 - Every scene must be type "composition".
 - Use the "layers" field, not "blocks".
-- Every scene must contain 1 to 8 meaningful layers.
+- Scenes may contain 0 to 8 layers. Use 0 layers only when the media speaks for itself (e.g. subtitle-only or media-only scene).
 - Use only the allowed layer kinds.
 - Duration must be an integer number of frames (at 30fps: 30 frames = 1 second).
 - For video assets as media: if trimStart and trimEnd are provided, set scene duration = round((trimEnd - trimStart) * fps).
@@ -220,7 +238,7 @@ Rules:
 - "cta" should be used near the end, not in every scene.
 - "subtitle" is for captions at the bottom of the frame — use for key phrases, not full sentences.
 - Keep text concise and useful for a business audience.
-- Use layer timing (enterAt) to stagger layers for dynamic effect: badge first, then heading after 8–12 frames, then body after 16–20 frames.
+- Consider staggering layers for dynamic effect (badge first, then heading, then body), unless the user directive asks for minimal or no layers.
 - Vary the layer combinations between scenes. Do not repeat the exact same structure every time.
 - Keep all assets from the input "assets" array unchanged in the output. Copy each asset's id, type, src, alt, width, and height exactly. Do not invent or modify any asset field.
 - For video assets, also preserve durationSeconds and fps exactly.
@@ -233,7 +251,7 @@ Rules:
 - Use "image" layers for inline visual cards when the asset is a photo, not only as background media.
 - Respect image orientation: portrait → side card or frame mode; wide → background or strip.
 - The result should feel like a professionally edited Reels or TikTok video: dynamic, punchy, and relevant to the video's actual content.
-- If a video asset has hasAudio: true — its audio plays in the render automatically. Subtitle layers and background music are handled by the system; focus on making visual content match the spoken content.
+- If a video asset has hasAudio: true — its audio plays automatically. The system will auto-inject synchronized subtitle text from the transcript. DO NOT write subtitle text yourself. Instead, place exactly ONE subtitle layer per scene with the desired style fields (color, fontSize, outline, backgroundOpacity, position) and set "text" to a single dash "-" as a placeholder. The system replaces it with real speech.
 - Keep all assets from the input "assets" array unchanged in the output, including audio assets.
 `;
 

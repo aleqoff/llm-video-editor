@@ -1,15 +1,15 @@
 {
   "schemaVersion": 4,
   "videoConfig": {
-    "width": 1080,
-    "height": 1920,
-    "fps": 30
+    "width": 720,
+    "height": 1280,
+    "fps": 60
   },
   "assets": [
     {
       "id": "user-asset-1",
       "type": "video",
-      "src": "uploads/1779193913579-file-26ab02cc2ee8.mp4",
+      "src": "uploads/1779195793945-file-29a987c2d555.mp4",
       "alt": "тест.mp4",
       "width": 720,
       "height": 1280,
@@ -19,28 +19,53 @@
       "transcript": [
         {
           "text": "Я уронил джойстик.",
-          "startTime": 3.999,
-          "endTime": 5.119
+          "startTime": 3.961,
+          "endTime": 5.091
         },
         {
-          "text": "Добрый день, дорогие подписчики. Сегодня я хочу рассказать вам о такой замечательной теме, как Sunset IT. Sunset IT - это компания, которая придумала вот этого хомяка, между прочим, да, одно лицо.",
-          "startTime": 5.589,
-          "endTime": 18.239
+          "text": "Добрый день, дорогие подписчики. Сегодня я хочу рассказать вам о такой замечательной теме, как Sunset IT.",
+          "startTime": 5.611,
+          "endTime": 11.531
         },
         {
-          "text": "Так вот, Sunset IT - это компания, которая распространяет и э-э развивает собственное ПО на тему того, что важно людям. То есть они развивают это именно для собственных сайтов. Помимо этого, они разрабатывают собственные игры, причём уже две, как десктопные, так и компьютерные, так и мобильные.",
-          "startTime": 19.349,
-          "endTime": 38.659
+          "text": "Sunset IT - это компания, которая придумала вот этого хомяка, между прочим.",
+          "startTime": 11.971,
+          "endTime": 16.481
+        },
+        {
+          "text": "Да?",
+          "startTime": 16.711,
+          "endTime": 17.061
+        },
+        {
+          "text": "Одно лицо.",
+          "startTime": 17.651,
+          "endTime": 18.501
+        },
+        {
+          "text": "Так вот, Sunset IT - это компания, которая распространяет и ээ развивает собственное ПО на тему того, что важно людям.",
+          "startTime": 19.461,
+          "endTime": 28.651
+        },
+        {
+          "text": "То есть они развивают это именно для собственных сайтов.",
+          "startTime": 28.941,
+          "endTime": 32.061
+        },
+        {
+          "text": "Помимо этого, они разрабатывают собственные игры, причём уже две, как десктопные, так и компьютерные, так и мобильные.",
+          "startTime": 32.741,
+          "endTime": 38.641
         },
         {
           "text": "Помимо всего прочего, они разрабатывают конкретно этот движок для создания видео коротких.",
-          "startTime": 40.239,
-          "endTime": 45.479
+          "startTime": 40.161,
+          "endTime": 45.421
         },
         {
           "text": "Подписывайтесь, писки.",
-          "startTime": 46.549,
-          "endTime": 47.939
+          "startTime": 46.541,
+          "endTime": 47.901
         }
       ]
     }
@@ -48,164 +73,168 @@
   "scenes": [
     {
       "type": "composition",
-      "duration": 300,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FFD700",
+      "transition": "none",
+      "duration": 2888,
+      "backgroundColor": "#101820",
+      "textColor": "#FFFF00",
+      "accentColor": "#FF6B35",
       "align": "center",
       "media": {
         "assetId": "user-asset-1",
         "mode": "background",
         "overlayColor": "#000000",
         "overlayOpacity": 0.38,
-        "focalPoint": "center",
-        "trimStart": 2.5,
-        "trimEnd": 12.5
+        "trimStart": 0,
+        "trimEnd": 48.138167
       },
       "layers": [
-        {
-          "kind": "heading",
-          "text": "SUNSET IT",
-          "size": "xl",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD700",
-          "enterAt": 0,
-          "enterTransition": "scale"
-        },
         {
           "kind": "subtitle",
           "text": "Я уронил джойстик.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
           "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD700",
-          "enterAt": 45,
-          "exitAt": 79,
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 238,
+          "exitAt": 305,
           "enterTransition": "fade",
           "exitTransition": "fade"
         },
         {
           "kind": "subtitle",
-          "text": "Добрый день, дорогие подписчики. Сегодня я хочу рассказать вам о такой замечательной теме, как Sunset IT. Sunset IT -...",
+          "text": "Добрый день, дорогие подписчики. Сегодня я хочу рассказать вам о такой замечательной теме, как Sunset IT.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
           "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FFD700",
-          "enterAt": 93,
-          "exitAt": 300,
-          "enterTransition": "fade",
-          "exitTransition": "fade"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 450,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#00E5FF",
-      "align": "center",
-      "media": {
-        "assetId": "user-asset-1",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.38,
-        "focalPoint": "center",
-        "trimStart": 12.5,
-        "trimEnd": 27.5
-      },
-      "layers": [
-        {
-          "kind": "quote",
-          "text": "ПО на тему того, что важно людям",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
-          "enterAt": 10,
-          "enterTransition": "slideUp"
-        },
-        {
-          "kind": "subtitle",
-          "text": "Добрый день, дорогие подписчики. Сегодня я хочу рассказать вам о такой замечательной теме, как Sunset IT. Sunset IT -...",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
-          "enterAt": 0,
-          "exitAt": 172,
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 337,
+          "exitAt": 692,
           "enterTransition": "fade",
           "exitTransition": "fade"
         },
         {
           "kind": "subtitle",
-          "text": "Так вот, Sunset IT - это компания, которая распространяет и э-э развивает собственное ПО на тему того, что важно людя...",
+          "text": "Sunset IT - это компания, которая придумала вот этого хомяка, между прочим.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
           "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#00E5FF",
-          "enterAt": 205,
-          "exitAt": 450,
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 718,
+          "exitAt": 989,
           "enterTransition": "fade",
           "exitTransition": "fade"
-        }
-      ]
-    },
-    {
-      "type": "composition",
-      "duration": 570,
-      "backgroundColor": "#000000",
-      "textColor": "#FFFFFF",
-      "accentColor": "#FF4081",
-      "align": "center",
-      "media": {
-        "assetId": "user-asset-1",
-        "mode": "background",
-        "overlayColor": "#000000",
-        "overlayOpacity": 0.38,
-        "focalPoint": "center",
-        "trimStart": 27.5,
-        "trimEnd": 46.5
-      },
-      "layers": [
-        {
-          "kind": "list",
-          "items": [
-            "Игры для PC",
-            "Мобильные игры",
-            "Видеодвижок"
-          ],
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF4081",
-          "enterAt": 12,
-          "enterTransition": "fade"
-        },
-        {
-          "kind": "cta",
-          "title": "Узнать больше",
-          "action": "Подпишись",
-          "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF4081",
-          "enterAt": 150,
-          "enterTransition": "slideUp"
         },
         {
           "kind": "subtitle",
-          "text": "Так вот, Sunset IT - это компания, которая распространяет и э-э развивает собственное ПО на тему того, что важно людя...",
+          "text": "Да?",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
           "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF4081",
-          "enterAt": 0,
-          "exitAt": 335,
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 1003,
+          "exitAt": 1024,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Одно лицо.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
+          "align": "center",
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 1059,
+          "exitAt": 1110,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Так вот, Sunset IT - это компания, которая распространяет и ээ развивает собственное ПО на тему того, что важно людям.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
+          "align": "center",
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 1168,
+          "exitAt": 1719,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "То есть они развивают это именно для собственных сайтов.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
+          "align": "center",
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 1736,
+          "exitAt": 1924,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Помимо этого, они разрабатывают собственные игры, причём уже две, как десктопные, так и компьютерные, так и мобильные.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
+          "align": "center",
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 1964,
+          "exitAt": 2318,
           "enterTransition": "fade",
           "exitTransition": "fade"
         },
         {
           "kind": "subtitle",
           "text": "Помимо всего прочего, они разрабатывают конкретно этот движок для создания видео коротких.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
           "align": "center",
-          "color": "#FFFFFF",
-          "accentColor": "#FF4081",
-          "enterAt": 382,
-          "exitAt": 539,
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 2410,
+          "exitAt": 2725,
+          "enterTransition": "fade",
+          "exitTransition": "fade"
+        },
+        {
+          "kind": "subtitle",
+          "text": "Подписывайтесь, писки.",
+          "fontSize": "lg",
+          "backgroundOpacity": 0,
+          "outline": "#000000",
+          "position": "bottom",
+          "align": "center",
+          "color": "#FFFF00",
+          "accentColor": "#FF6B35",
+          "enterAt": 2792,
+          "exitAt": 2874,
           "enterTransition": "fade",
           "exitTransition": "fade"
         }
