@@ -163,20 +163,26 @@ const html = `<!DOCTYPE html>
       pointer-events: none; z-index: 0;
     }
 
+    button, textarea, input, .upload-zone, .voice-row { cursor: none !important; }
+
     #cursor {
       position: fixed; top: 0; left: 0;
       width: 0; height: 0; pointer-events: none;
       z-index: 9999; mix-blend-mode: difference;
       transform: translate(-50%,-50%); will-change: transform;
+      transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
-    .c-dot {
-      position: absolute; left: 50%; top: 50%;
+    #cursor-dot {
+      position: fixed; top: 0; left: 0;
       width: 4px; height: 4px; background: #fff;
-      border-radius: 50%; transform: translate(-50%,-50%);
+      border-radius: 50%; pointer-events: none;
+      z-index: 10000; mix-blend-mode: difference;
+      transform: translate(-50%,-50%); will-change: transform;
     }
     .c-corner {
       position: absolute; left: 50%; top: 50%;
       width: 11px; height: 11px; border: 2px solid #fff;
+      transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     .c-tl { transform: translate(-160%,-160%); border-right:none; border-bottom:none; }
     .c-tr { transform: translate(60%,-160%);   border-left:none;  border-bottom:none; }
@@ -284,8 +290,8 @@ const html = `<!DOCTYPE html>
     }
     textarea {
       display: block; width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border); border-radius: 0;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 0;
       color: var(--text); font-family: var(--body);
       font-weight: 300; font-size: 13px;
       padding: 12px 14px; resize: vertical; outline: none;
@@ -296,11 +302,12 @@ const html = `<!DOCTYPE html>
     textarea::placeholder { color: var(--dim); }
 
     .upload-zone {
-      border: 1px solid var(--border); padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,0.14); padding: 14px 16px;
+      background: rgba(255,255,255,0.07);
       cursor: pointer; transition: border-color 0.18s, background 0.18s;
       display: flex; flex-direction: column; justify-content: center;
     }
-    .upload-zone:hover  { border-color: var(--border-hi); background: var(--surface); }
+    .upload-zone:hover  { border-color: var(--border-hi); background: rgba(255,255,255,0.11); }
     .upload-zone.drag   { border-color: var(--orange); background: rgba(255,100,0,0.03); }
     .up-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .up-icon {
@@ -329,7 +336,8 @@ const html = `<!DOCTYPE html>
     }
     .voice-row {
       display: flex; align-items: flex-start; gap: 11px;
-      padding: 11px 14px; border: 1px solid var(--border);
+      padding: 11px 14px; border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.07);
       cursor: pointer; transition: border-color 0.18s; user-select: none;
     }
     .voice-row:hover { border-color: var(--border-hi); }
@@ -358,8 +366,8 @@ const html = `<!DOCTYPE html>
     .btn-gen:disabled { opacity: 0.35; cursor: not-allowed; }
     .btn-prev {
       white-space: nowrap;
-      background: transparent; color: var(--text);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.09); color: var(--text);
+      border: 1px solid rgba(255,255,255,0.18);
       padding: 0 20px; height: 44px;
       font-family: var(--head); font-size: 10px;
       font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
@@ -414,8 +422,8 @@ const html = `<!DOCTYPE html>
 <body>
   <div id="prog"></div>
   <canvas id="dot-canvas"></canvas>
+  <div id="cursor-dot"></div>
   <div id="cursor">
-    <div class="c-dot"></div>
     <div class="c-ring">
       <div class="c-corner c-tl"></div>
       <div class="c-corner c-tr"></div>
@@ -698,11 +706,60 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   <\/script>
 
   <script>
-    const cur = document.getElementById('cursor');
+    const cur    = document.getElementById('cursor');
+    const curDot = document.getElementById('cursor-dot');
     let cx = -200, cy = -200;
+    let isLocked = false;
+
+    const ring    = cur.querySelector('.c-ring');
+    const corners = {
+      tl: cur.querySelector('.c-tl'),
+      tr: cur.querySelector('.c-tr'),
+      br: cur.querySelector('.c-br'),
+      bl: cur.querySelector('.c-bl'),
+    };
+
+    const CORNER = 11;
+    const PAD    = 7;
+
+    function lockToElement(el) {
+      const r  = el.getBoundingClientRect();
+      const ex = r.left + r.width  / 2;
+      const ey = r.top  + r.height / 2;
+      const hw = r.width  / 2 + PAD;
+      const hh = r.height / 2 + PAD;
+      isLocked = true;
+      cur.style.transform = 'translate(calc(' + ex + 'px - 50%), calc(' + ey + 'px - 50%))';
+      corners.tl.style.transform = 'translate(' + (-hw) + 'px, ' + (-hh) + 'px)';
+      corners.tr.style.transform = 'translate(' + (hw - CORNER) + 'px, ' + (-hh) + 'px)';
+      corners.br.style.transform = 'translate(' + (hw - CORNER) + 'px, ' + (hh - CORNER) + 'px)';
+      corners.bl.style.transform = 'translate(' + (-hw) + 'px, ' + (hh - CORNER) + 'px)';
+      ring.style.animation = 'none';
+    }
+
+    function unlock() {
+      isLocked = false;
+      corners.tl.style.transform = '';
+      corners.tr.style.transform = '';
+      corners.br.style.transform = '';
+      corners.bl.style.transform = '';
+      ring.style.animation = '';
+    }
+
+    function bindHoverTargets() {
+      document.querySelectorAll('button, textarea, .upload-zone, .voice-row')
+        .forEach(el => {
+          el.addEventListener('mouseenter', () => lockToElement(el));
+          el.addEventListener('mouseleave', unlock);
+        });
+    }
+    setTimeout(bindHoverTargets, 350);
+
     document.addEventListener('mousemove', e => {
       cx = e.clientX; cy = e.clientY;
-      cur.style.transform = 'translate(calc(' + cx + 'px - 50%), calc(' + cy + 'px - 50%))';
+      curDot.style.transform = 'translate(calc(' + cx + 'px - 50%), calc(' + cy + 'px - 50%))';
+      if (!isLocked)
+        cur.style.transform = 'translate(calc(' + cx + 'px - 50%), calc(' + cy + 'px - 50%))';
     });
 
     (function(){
